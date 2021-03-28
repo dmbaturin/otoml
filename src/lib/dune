@@ -1,0 +1,3 @@
+(library
+  (name otoml)
+  (public_name otoml))

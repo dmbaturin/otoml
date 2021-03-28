@@ -1,0 +1,19 @@
+opam-version: "2.0"
+version: "0.0.1"
+maintainer: "daniil+opam@baturin.org"
+authors: ["Daniil Baturin <daniil@baturin.org>"]
+homepage: "https://github.com/dmbaturin/otoml"
+bug-reports: "https://github.com/dmbaturin/otoml/issues"
+dev-repo: "git+https://github.com/dmbaturin/otoml.git"
+license: "MIT"
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+]
+depends: [
+  "ocaml" {>= "4.03.0"}
+  "dune" {>= "1.9"}
+]
+synopsis: "TOML library (work in progress)"
+description: """
+TOML library (work in progress)
+"""
