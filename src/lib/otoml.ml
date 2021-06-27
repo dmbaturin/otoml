@@ -1,112 +1,179 @@
 include Types
+include Common
 
-let type_string v =
-  match v with
-  | TomlString _ -> "string"
-  | TomlInteger _ -> "integer"
-  | TomlFloat _ -> "float"
-  | TomlBoolean _ -> "boolean"
-  | TomlLocalTime _ -> "local time"
-  | TomlLocalDate _ -> "local date"
-  | TomlLocalDateTime _ -> "local date-time"
-  | TomlOffsetDateTime _ -> "offset date-time"
-  | TomlArray _ -> "array"
-  | TomlTable _ | TomlInlineTable _ | TomlTableArray _ -> "table"
+(* Conversions between different variants of the same type. *)
 
-exception Key_error of string
-exception Type_error of string
-
-let key_error err = raise (Key_error err)
-let type_error err = raise (Type_error err)
-
-let list_table_keys t =
+let table_to_inline t =
   match t with
-  | TomlTable os | TomlInlineTable os | TomlTableArray os -> Utils.assoc_keys os
-  | _ -> Printf.ksprintf type_error "value must be a table, found %s" (type_string t)
+  | TomlInlineTable _ as t -> t
+  | TomlTable t -> TomlInlineTable t
+  | _ as t -> Printf.ksprintf type_error "cannot convert %s to an inline table" (type_string t)
 
-let field ?(default=None) ?(getter=(fun x -> x)) k v =
-  match v with
-  | TomlTable fs | TomlInlineTable fs | TomlTableArray fs -> begin
-      try
-        let res = List.assoc k fs in
-        getter res
-      with
-      | Not_found ->
-        (match default with
-         | None -> Printf.ksprintf key_error "table has no field \"%s\"" k
-         | Some default -> default)
-    end
-  | _ -> Printf.ksprintf type_error "cannot retrieve field \"%s\": value is not a table" k
+let inline_to_table t =
+  match t with
+  | TomlInlineTable t -> TomlTable t
+  | TomlTable _ as t -> t
+  | _ as t -> Printf.ksprintf type_error "cannot convert %s to a table" (type_string t)
 
-let string ?(strict=true) v =
-  match v with
-  | TomlString s -> s
-  | _ -> begin
-    if strict then Printf.ksprintf type_error "value must be a string, found a %s" (type_string v) else
-    match v with
-    | TomlInteger i -> string_of_int i
-    | TomlFloat f -> Utils.string_of_float f
-    | TomlBoolean b -> string_of_bool b
-    | _ -> Printf.ksprintf type_error "cannot convert %s to string" (type_string v)
-  end
+(* Constructors *)
 
-let integer ?(strict=true) v =
-  match v with
-  | TomlInteger i -> i
-  | _ -> begin
-    if strict then Printf.ksprintf type_error "value must be an integer, found %s" (type_string v) else
-    match v with
-     | TomlString s -> int_of_string s
-     | TomlBoolean b -> (if b then 1 else 0)
-     | _ -> Printf.ksprintf type_error "cannot convert %s to integer" (type_string v)
- end
-
-let bool ?(strict=true) v =
-  match v with
-  | TomlBoolean b -> b
-  | _ -> begin
-    if strict then Printf.ksprintf type_error "value must be a boolean, found %s" (type_string v) else
-    match v with
-    | TomlString s -> (s = "")
-    | TomlInteger i -> (i = 0)
-    | TomlFloat f -> (f = 0.0)
-    | TomlArray a -> (a = [])
-    | TomlTable o | TomlInlineTable o | TomlTableArray o ->  (o = [])
+let string s = TomlString s
+let integer n = TomlInteger n
+let float n = TomlFloat n
+let boolean b = TomlBoolean b
+let offset_datetime dt = TomlOffsetDateTime dt
+let local_datetime dt = TomlLocalDateTime dt
+let local_date d = TomlLocalDate d
+let local_time t = TomlLocalTime t
+let array xs = TomlArray xs
+let table kvs = TomlTable kvs
+let inline_table kvs = TomlInlineTable kvs
+let table_array xs =
+  let is_table t =
+    match t with 
+    | TomlTable _ | TomlInlineTable _ -> true
     | _ -> false
-  end
+  in
+  if List.for_all is_table xs then TomlTableArray (List.map inline_to_table xs)
+  else Printf.ksprintf type_error "cannot create an array of tables: original array contains a non-table item"
 
-let table v =
-  match v with
-  | (TomlTable _ | TomlInlineTable _ | TomlTableArray _) as o -> o
-  | _ -> Printf.ksprintf type_error "value must be a table, found %s" (type_string v)
+(* Accessors *)
 
-let list ?(strict=true) v =
-  match v with
-  | TomlArray a -> a
+let get_table t =
+  match t with
+  | TomlTable os | TomlInlineTable os -> os
+  | _ -> Printf.ksprintf type_error "value is %s, not a table" (type_string t)
+
+let get_string ?(strict=true) t =
+  match t with
+  | TomlString s -> s
   | _ ->
-    if strict then Printf.ksprintf type_error "value must be a list, found %s" (type_string v)
+    begin
+      if strict then Printf.ksprintf type_error "value must be a string, found a %s" (type_string t) else
+      match t with
+      | TomlInteger i -> string_of_int i
+      | TomlFloat f -> string_of_float f
+      | TomlBoolean b -> string_of_bool b
+      | _ -> Printf.ksprintf type_error "cannot convert %s to string" (type_string t)
+    end
+
+let get_integer ?(strict=true) t =
+  match t with
+  | TomlInteger i -> i
+  | _ ->
+    begin
+      if strict then Printf.ksprintf type_error "value must be an integer, found %s" (type_string t) else
+      match t with
+      | TomlString s -> int_of_string s
+      | TomlBoolean b -> (if b then 1 else 0)
+      | _ -> Printf.ksprintf type_error "cannot convert %s to integer" (type_string t)
+    end
+
+let get_bool ?(strict=true) t =
+  match t with
+  | TomlBoolean b -> b
+  | _ ->
+    begin
+      if strict then Printf.ksprintf type_error "value must be an boolean, found a %s" (type_string t) else
+      match t with
+      | TomlString s -> (s = "")
+      | TomlInteger i -> (i = 0)
+      | TomlFloat f -> (f = 0.0)
+      | TomlArray a | TomlTableArray a -> (a = [])
+      | TomlTable o | TomlInlineTable o -> (o = [])
+      | _ -> false
+    end
+
+let get_array ?(strict=true) t =
+  match t with
+  | TomlArray a | TomlTableArray a -> a
+  | _ as v ->
+    if strict then Printf.ksprintf type_error "value must be an array, found %s" (type_string t)
     else [v]
 
-let rec of_json j =
-  match j with
-  | `Float n -> TomlFloat n
-  | `Bool b -> TomlBoolean b
-  | `String s -> TomlString s
-  | `A js -> TomlArray (List.map of_json js)
-  | `O os -> TomlTable (List.map (fun (k, v) -> (k, of_json v)) os)
-  | `Null -> TomlTable []
+(* High-level interfaces *)
 
-let rec to_json t =
-  match t with
-  | TomlString s -> `String s
-  | TomlInteger i -> `Float (float_of_int i)
-  | TomlFloat f -> `Float f
-  | TomlBoolean b -> `Bool b
-  | TomlLocalTime s -> `String s
-  | TomlLocalDate s -> `String s
-  | TomlLocalDateTime s -> `String s
-  | TomlOffsetDateTime s -> `String s
-  | TomlArray xs -> `A (List.map to_json xs)
-  | TomlTable os | TomlInlineTable os | TomlTableArray os -> `O (List.map (fun (k, v) -> (k, to_json v)) os)
+let list_table_keys t =
+  let t =
+    try get_table t
+    with Type_error msg -> Printf.ksprintf type_error "cannot list keys: %s" msg
+  in
+  List.fold_left (fun acc (x, _) -> x :: acc) [] t |> List.rev
 
-  
+let field k t =
+  try
+    begin
+      let t = get_table t in
+      let res = List.assoc_opt k t in
+      match res with
+      | Some res -> res
+      | None -> Printf.ksprintf key_error "field \"%s\" not found" k
+    end
+  with
+  | Key_error msg -> Printf.ksprintf key_error "cannot retrieve field \"%s\": %s" k msg
+  | Type_error msg -> Printf.ksprintf type_error "cannot retrieve field \"%s\": %s" k msg
+
+let field_opt k t =
+  try Some (field k t)
+  with Key_error _ -> None
+
+let find accessor value path =
+  let make_dotted_path ps = String.concat "." ps in
+  let rec aux accessor path value =
+    match path with
+    | [] -> accessor value
+    | p :: ps ->
+      let value = field p value in
+      aux accessor ps value
+  in
+  try
+    aux accessor path value
+  with
+  | Key_error msg ->
+    Printf.ksprintf key_error "Failed to retrieve a value at %s: %s" (make_dotted_path path) msg
+  | Type_error msg ->
+    Printf.ksprintf type_error "TOML type error occured while trying to retrieve a value at %s: %s"
+      (make_dotted_path path) msg
+
+let find_opt accessor value path =
+  try Some (find accessor value path)
+  with Key_error _ -> None
+
+let find_or ~default:default value accessor path =
+  find_opt accessor value path |> Option.value ~default:default
+
+let update_field value key new_value =
+  let rec update assoc key value =
+    match assoc with
+    | [] ->
+      begin
+        match value with
+        | None -> []
+        | Some v -> [(key, v)]
+      end
+    | (key', value') :: assoc' ->
+      if key = key' then
+      begin
+        match value with
+        | None -> assoc'
+        | Some v -> (key, v) :: assoc'
+      end
+      else (key', value') :: (update assoc' key value)
+  in
+  match value with
+  | TomlTable fs -> TomlTable (update fs key new_value)
+  | TomlInlineTable fs -> TomlInlineTable (update fs key new_value)
+  | _ -> Printf.ksprintf key_error "cannot update field %s: value is %s, not a table" key (type_string value)
+
+let rec update value ?(use_inline_tables=false) path new_value =
+  let make_empty_table use_inline =
+    if use_inline then (TomlInlineTable []) else (TomlTable [])
+  in
+  match path with
+  | [] -> failwith "Cannot update a TOML value at an empty path"
+  | [p] -> update_field value p new_value
+  | p :: ps ->
+    let nested_value = field_opt p value |> Option.value ~default:(make_empty_table use_inline_tables) in
+    let nested_value = update nested_value ps new_value in
+    update_field value p (Some nested_value)
+
