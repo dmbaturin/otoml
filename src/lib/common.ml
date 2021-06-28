@@ -1,4 +1,4 @@
-include Types
+open Types
 
 (* Convenience functions for throwing exceptions *)
 let key_error err = raise (Key_error err)

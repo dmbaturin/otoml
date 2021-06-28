@@ -1,5 +1,4 @@
-include Types
-include Common
+open Types
 
 let force_inline v =
   match v with

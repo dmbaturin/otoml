@@ -1,5 +1,5 @@
 include Types
-include Common
+open Common
 
 (* Conversions between different variants of the same type. *)
 

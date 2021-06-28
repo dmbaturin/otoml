@@ -1,4 +1,4 @@
-include Types
+open Types
 
 let rec of_json j =
   match j with
