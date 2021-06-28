@@ -177,3 +177,63 @@ let rec update value ?(use_inline_tables=false) path new_value =
     let nested_value = update nested_value ps new_value in
     update_field value p (Some nested_value)
 
+module Parser = struct
+  open Lexing
+  open Parser_utils
+
+  module I = Toml_parser.MenhirInterpreter
+
+  let get_parse_error env =
+    match I.stack env with
+    | lazy Nil -> "Invalid syntax"
+    | lazy (Cons (I.Element (state, _, _, _), _)) ->
+        try (Toml_parser_messages.message (I.number state)) with
+        | Not_found -> "invalid syntax (no specific message for this eror)"
+
+  let rec _parse lexbuf (checkpoint : t I.checkpoint) =
+    match checkpoint with
+    | I.InputNeeded _env ->
+      let token = Toml_lexer.token lexbuf in
+      let startp = lexbuf.lex_start_p
+      and endp = lexbuf.lex_curr_p in
+      let checkpoint = I.offer checkpoint (token, startp, endp) in
+      _parse lexbuf checkpoint
+    | I.Shifting _
+    | I.AboutToReduce _ ->
+      let checkpoint = I.resume checkpoint in
+      _parse lexbuf checkpoint
+    | I.HandlingError _env ->
+      let line, pos = Parser_utils.get_lexing_position lexbuf in
+      let err = get_parse_error _env in
+      raise (Parse_error (Some (line, pos), err))
+    | I.Accepted v -> v
+    | I.Rejected ->
+       raise (Parse_error (None, "invalid syntax (parser rejected the input)"))
+
+  let parse lexbuf =
+    try
+      let toml = _parse lexbuf (Toml_parser.Incremental.toml lexbuf.lex_curr_p) in
+      Ok toml
+    with
+    | Parse_error (pos, err) ->
+      begin match pos with
+      | Some (line, pos) ->
+          let msg = Printf.sprintf "Syntax error on line %d, character %d: %s" line pos err in
+          raise (Syntax_error msg)
+      | None -> Error (Printf.sprintf "Syntax error: %s" err)
+    end
+
+  let from_channel ic =
+    let lexbuf = Lexing.from_channel ic in
+    parse lexbuf
+
+  let from_file filename =
+    let ic = open_in filename in
+    let t = from_channel ic in
+    let () = close_in ic in
+    t
+
+  let from_string s =
+    let lexbuf = Lexing.from_string s in
+    parse lexbuf
+end

@@ -1,3 +1,14 @@
+(ocamllex toml_lexer)
+(menhir
+ (flags --table)
+ (modules toml_parser))
+
+(rule
+ (targets toml_parser_messages.ml)
+ (deps toml_parser.messages toml_parser.mly)
+ (action  (with-stdout-to %{targets} (run menhir --compile-errors %{deps}))))
+
 (library
   (name otoml)
-  (public_name otoml))
+  (public_name otoml)
+  (libraries menhirLib))

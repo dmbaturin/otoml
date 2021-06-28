@@ -1,0 +1,85 @@
+toml: LBRACKET COMMA STRING
+##
+## Ends in an error in state: 18.
+##
+## array -> LBRACKET loption(separated_nonempty_list(COMMA,value)) option(COMMA) . RBRACKET [ # ]
+##
+## The known suffix of the stack is as follows:
+## LBRACKET loption(separated_nonempty_list(COMMA,value)) option(COMMA)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: LBRACKET LBRACKET COMMA STRING
+##
+## Ends in an error in state: 15.
+##
+## array -> LBRACKET loption(separated_nonempty_list(COMMA,value)) option(COMMA) . RBRACKET [ RBRACKET COMMA ]
+##
+## The known suffix of the stack is as follows:
+## LBRACKET loption(separated_nonempty_list(COMMA,value)) option(COMMA)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: LBRACKET LBRACKET RBRACE
+##
+## Ends in an error in state: 4.
+##
+## array -> LBRACKET . loption(separated_nonempty_list(COMMA,value)) option(COMMA) RBRACKET [ RBRACKET COMMA ]
+##
+## The known suffix of the stack is as follows:
+## LBRACKET
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: LBRACKET RBRACE
+##
+## Ends in an error in state: 2.
+##
+## array -> LBRACKET . loption(separated_nonempty_list(COMMA,value)) option(COMMA) RBRACKET [ # ]
+##
+## The known suffix of the stack is as follows:
+## LBRACKET
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: LBRACKET STRING COMMA RBRACKET
+##
+## Ends in an error in state: 9.
+##
+## separated_nonempty_list(COMMA,value) -> value COMMA . separated_nonempty_list(COMMA,value) [ RBRACKET COMMA ]
+##
+## The known suffix of the stack is as follows:
+## value COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: LBRACKET STRING STRING
+##
+## Ends in an error in state: 8.
+##
+## separated_nonempty_list(COMMA,value) -> value . [ RBRACKET COMMA ]
+## separated_nonempty_list(COMMA,value) -> value . COMMA separated_nonempty_list(COMMA,value) [ RBRACKET COMMA ]
+##
+## The known suffix of the stack is as follows:
+## value
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: RBRACKET
+##
+## Ends in an error in state: 0.
+##
+## toml' -> . toml [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
