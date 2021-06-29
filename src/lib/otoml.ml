@@ -91,6 +91,8 @@ let get_array ?(strict=true) t =
     if strict then Printf.ksprintf type_error "value must be an array, found %s" (type_string t)
     else [v]
 
+let get_value t = t
+
 (* High-level interfaces *)
 
 let list_table_keys t =
