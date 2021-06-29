@@ -63,7 +63,7 @@ let t_local_time = t_time_group ':' t_time_group ':' t_time_group ('.' t_digit+)
 
 rule token = parse
 (* Whitespace *)
-| ('\n' | '\r' '\n') { Lexing.new_line lexbuf; token lexbuf }
+| ('\n' | '\r' '\n') { Lexing.new_line lexbuf; NEWLINE }
 | [' ' '\t']
   { token lexbuf }
 (* Punctuation *)

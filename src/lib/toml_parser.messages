@@ -1,72 +1,31 @@
-toml: LBRACKET COMMA STRING
-##
-## Ends in an error in state: 18.
-##
-## array -> LBRACKET loption(separated_nonempty_list(COMMA,value)) option(COMMA) . RBRACKET [ # ]
-##
-## The known suffix of the stack is as follows:
-## LBRACKET loption(separated_nonempty_list(COMMA,value)) option(COMMA)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: LBRACKET LBRACKET COMMA STRING
-##
-## Ends in an error in state: 15.
-##
-## array -> LBRACKET loption(separated_nonempty_list(COMMA,value)) option(COMMA) . RBRACKET [ RBRACKET COMMA ]
-##
-## The known suffix of the stack is as follows:
-## LBRACKET loption(separated_nonempty_list(COMMA,value)) option(COMMA)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: LBRACKET LBRACKET RBRACE
+toml: NEWLINE COMMA
 ##
 ## Ends in an error in state: 4.
 ##
-## array -> LBRACKET . loption(separated_nonempty_list(COMMA,value)) option(COMMA) RBRACKET [ RBRACKET COMMA ]
+## toml -> list(NEWLINE) . the_end [ # ]
+## toml -> list(NEWLINE) . table the_end [ # ]
 ##
 ## The known suffix of the stack is as follows:
-## LBRACKET
+## list(NEWLINE)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 1, spurious reduction of production list(NEWLINE) ->
+## In state 2, spurious reduction of production list(NEWLINE) -> NEWLINE list(NEWLINE)
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: LBRACKET RBRACE
+toml: NEWLINE RBRACE
 ##
-## Ends in an error in state: 2.
+## Ends in an error in state: 1.
 ##
-## array -> LBRACKET . loption(separated_nonempty_list(COMMA,value)) option(COMMA) RBRACKET [ # ]
-##
-## The known suffix of the stack is as follows:
-## LBRACKET
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: LBRACKET STRING COMMA RBRACKET
-##
-## Ends in an error in state: 9.
-##
-## separated_nonempty_list(COMMA,value) -> value COMMA . separated_nonempty_list(COMMA,value) [ RBRACKET COMMA ]
+## list(NEWLINE) -> NEWLINE . list(NEWLINE) [ STRING RBRACKET NEWLINE LBRACKET LBRACE KEY INTEGER FLOAT EOF COMMA BOOLEAN ]
 ##
 ## The known suffix of the stack is as follows:
-## value COMMA
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: LBRACKET STRING STRING
-##
-## Ends in an error in state: 8.
-##
-## separated_nonempty_list(COMMA,value) -> value . [ RBRACKET COMMA ]
-## separated_nonempty_list(COMMA,value) -> value . COMMA separated_nonempty_list(COMMA,value) [ RBRACKET COMMA ]
-##
-## The known suffix of the stack is as follows:
-## value
+## NEWLINE
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -79,6 +38,219 @@ toml: RBRACKET
 ##
 ## The known suffix of the stack is as follows:
 ##
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ BOOLEAN EOF NEWLINE STRING
+##
+## Ends in an error in state: 13.
+##
+## the_end -> nonempty_list(NEWLINE) . [ # ]
+## the_end -> nonempty_list(NEWLINE) . EOF [ # ]
+##
+## The known suffix of the stack is as follows:
+## nonempty_list(NEWLINE)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 6, spurious reduction of production nonempty_list(NEWLINE) -> NEWLINE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ BOOLEAN EOF STRING
+##
+## Ends in an error in state: 11.
+##
+## toml -> list(NEWLINE) table . the_end [ # ]
+##
+## The known suffix of the stack is as follows:
+## list(NEWLINE) table
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ BOOLEAN NEWLINE RBRACKET
+##
+## Ends in an error in state: 6.
+##
+## nonempty_list(NEWLINE) -> NEWLINE . [ STRING NEWLINE KEY EOF # ]
+## nonempty_list(NEWLINE) -> NEWLINE . nonempty_list(NEWLINE) [ STRING NEWLINE KEY EOF # ]
+##
+## The known suffix of the stack is as follows:
+## NEWLINE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ BOOLEAN STRING
+##
+## Ends in an error in state: 15.
+##
+## items_on_lines(key_value_pair) -> key_value_pair . the_end [ NEWLINE EOF ]
+## items_on_lines(key_value_pair) -> key_value_pair . nonempty_list(NEWLINE) items_on_lines(key_value_pair) [ NEWLINE EOF ]
+##
+## The known suffix of the stack is as follows:
+## key_value_pair
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LBRACE RBRACKET
+##
+## Ends in an error in state: 25.
+##
+## inline_table -> LBRACE . loption(separated_nonempty_list(COMMA,key_value_pair)) RBRACE [ RBRACKET RBRACE NEWLINE EOF COMMA ]
+##
+## The known suffix of the stack is as follows:
+## LBRACE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LBRACE STRING EQ BOOLEAN COMMA RBRACKET
+##
+## Ends in an error in state: 30.
+##
+## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair COMMA . separated_nonempty_list(COMMA,key_value_pair) [ RBRACE ]
+##
+## The known suffix of the stack is as follows:
+## key_value_pair COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LBRACE STRING EQ BOOLEAN STRING
+##
+## Ends in an error in state: 29.
+##
+## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . [ RBRACE ]
+## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . COMMA separated_nonempty_list(COMMA,key_value_pair) [ RBRACE ]
+##
+## The known suffix of the stack is as follows:
+## key_value_pair
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LBRACKET NEWLINE RBRACKET
+##
+## Ends in an error in state: 24.
+##
+## array -> LBRACKET list(NEWLINE) . item_sequence(COMMA,value) list(NEWLINE) RBRACKET [ RBRACKET RBRACE NEWLINE EOF COMMA ]
+##
+## The known suffix of the stack is as follows:
+## LBRACKET list(NEWLINE)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 1, spurious reduction of production list(NEWLINE) ->
+## In state 2, spurious reduction of production list(NEWLINE) -> NEWLINE list(NEWLINE)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LBRACKET RBRACKET
+##
+## Ends in an error in state: 23.
+##
+## array -> LBRACKET . list(NEWLINE) item_sequence(COMMA,value) list(NEWLINE) RBRACKET [ RBRACKET RBRACE NEWLINE EOF COMMA ]
+##
+## The known suffix of the stack is as follows:
+## LBRACKET
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LBRACKET STRING COMMA NEWLINE RBRACKET
+##
+## Ends in an error in state: 38.
+##
+## item_sequence(COMMA,value) -> value list(NEWLINE) COMMA list(NEWLINE) . item_sequence(COMMA,value) [ RBRACKET NEWLINE ]
+##
+## The known suffix of the stack is as follows:
+## value list(NEWLINE) COMMA list(NEWLINE)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 1, spurious reduction of production list(NEWLINE) ->
+## In state 2, spurious reduction of production list(NEWLINE) -> NEWLINE list(NEWLINE)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LBRACKET STRING COMMA RBRACKET
+##
+## Ends in an error in state: 37.
+##
+## item_sequence(COMMA,value) -> value list(NEWLINE) COMMA . list(NEWLINE) item_sequence(COMMA,value) [ RBRACKET NEWLINE ]
+##
+## The known suffix of the stack is as follows:
+## value list(NEWLINE) COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LBRACKET STRING NEWLINE BOOLEAN
+##
+## Ends in an error in state: 36.
+##
+## item_sequence(COMMA,value) -> value list(NEWLINE) . [ RBRACKET NEWLINE ]
+## item_sequence(COMMA,value) -> value list(NEWLINE) . COMMA list(NEWLINE) item_sequence(COMMA,value) [ RBRACKET NEWLINE ]
+##
+## The known suffix of the stack is as follows:
+## value list(NEWLINE)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 1, spurious reduction of production list(NEWLINE) ->
+## In state 2, spurious reduction of production list(NEWLINE) -> NEWLINE list(NEWLINE)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LBRACKET STRING STRING
+##
+## Ends in an error in state: 35.
+##
+## item_sequence(COMMA,value) -> value . list(NEWLINE) [ RBRACKET NEWLINE ]
+## item_sequence(COMMA,value) -> value . list(NEWLINE) COMMA list(NEWLINE) item_sequence(COMMA,value) [ RBRACKET NEWLINE ]
+##
+## The known suffix of the stack is as follows:
+## value
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ RBRACKET
+##
+## Ends in an error in state: 21.
+##
+## key_value_pair -> key EQ . value [ RBRACE NEWLINE EOF COMMA ]
+##
+## The known suffix of the stack is as follows:
+## key EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING STRING
+##
+## Ends in an error in state: 20.
+##
+## key_value_pair -> key . EQ value [ RBRACE NEWLINE EOF COMMA ]
+##
+## The known suffix of the stack is as follows:
+## key
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
