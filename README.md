@@ -1,6 +1,16 @@
-# eztoml
+# OTOML
 
-A TOML parsing and manipulation library for OCaml
+[This is a work in progress and the README lies!]
+
+A TOML parsing and manipulation library for OCaml.
+
+In short:
+
+* TOML 1.0-compliant.
+* Transparent (no abstract types).
+* Preserves original concrete syntax (e.g. inline vs normal table) when parsing and printing.
+* Flexible pretty-printing options.
+* Does not force a calendar library dependency on you (you can plug your own into the functor).
 
 ## Goals
 
@@ -15,31 +25,51 @@ That is why TOML supports comments and multiple ways to write the same data.
 Ideally, when a program reads a TOML file and writes it back, it should be able to preserve
 comments, user's choice of using inline records vs sections (i.e. `section = { ...}` vs `[section]`) and so on.
 
-eztoml preserves that information and makes it available to the user.
+OTOML preserves that information and makes it available to the user.
+
+It also offers a convenient interface for accessing and modifying values in deeply nested tables.
 
 ## Example
 
 Mockup:
 
 ```ocaml
-# let toml = "
+# let toml_str = "
 
 # There are many like it, but this one is mine
 [my_section]
-  inline_record = {
-    my_option = false
-  }
+  inline_record = { my_option = false }
 "
 
-# EzToml.from_string toml;;
+# let toml = Otoml.from_string toml_str;;
 
-- : [> EzToml.t ] = 
-`Table [("my_section", `Table [("inline_record", `Table [("my_option", `Bool false)])])]
+- : Otoml.t = 
+TomlTable [("my_section", TomlInlineTable [("inline_record", TomlTable [("my_option", TomlBoolean false)])])]
 
-# EzToml.Ast.from_string toml ;;
-- : EzToml.Ast.t = [
-`Comment "There are many like it, but this one is mine";
-`Table ("my_section", [`InlineTable ...
-]
+# Otoml.to_string ~indent_width=4 ~indent_subtables=false ~newline_before_table=true v;;
+[my_section]
+    inline_record = { my_option = false }
+
+# Otoml.find get_bool t ["my_section"; "inline_record"; "my_option"] ;;
+- : bool = false
+
+# Otoml.find get_value t ["my_section"; "inline_record"; "my_option"] ;;
+- : t = TomlBoolean false
 
 ```
+
+## Deviations from the TOML 1.0 specification
+
+>Arbitrary 64-bit signed integers (from −2^63 to 2^63−1) should be accepted and handled losslessly.
+>If an integer cannot be represented losslessly, an error must be thrown.
+
+OTOML uses OCaml's native integer type, which is 63-bit on 64-bit architectures and 31-bit on 32-bit ones.
+
+>To unambiguously represent a specific instant in time, you may use an RFC 3339 formatted date-time with offset.
+>Millisecond precision is required. Further precision of fractional seconds is implementation-specific.
+
+The default implementation does not interpret datetime values at all,
+only checks them for superficial validity and returns as strings.
+(e.g. 1993-09-947 is considered invalid, but 1993-02-29 is valid despite the fact that 1993 wasn't a leap year).
+
+Thus, actual precision depends on the library you use to parse those date strings or plug into the functor.
