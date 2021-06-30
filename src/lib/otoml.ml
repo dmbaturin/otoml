@@ -183,6 +183,10 @@ module Parser = struct
   open Lexing
   open Parser_utils
 
+  exception Duplicate_key of string
+
+  let parse_error pos msg = raise (Parse_error (pos, msg))
+
   module I = Toml_parser.MenhirInterpreter
 
   let get_parse_error env =
@@ -192,7 +196,7 @@ module Parser = struct
         try (Toml_parser_messages.message (I.number state)) with
         | Not_found -> "invalid syntax (no specific message for this eror)"
 
-  let rec _parse lexbuf (checkpoint : t I.checkpoint) =
+  let rec _parse lexbuf (checkpoint (* : (signal list) I.checkpoint *)) =
     match checkpoint with
     | I.InputNeeded _env ->
       let token = Toml_lexer.token lexbuf in
@@ -211,6 +215,53 @@ module Parser = struct
     | I.Accepted v -> v
     | I.Rejected ->
        raise (Parse_error (None, "invalid syntax (parser rejected the input)"))
+
+  let insert_field toml ?(duplicate_check=true) key new_value =
+    let rec update assoc key value =
+      match assoc with
+      | [] ->
+        (* If recursion took us to the end of the list,
+           the key is certainly not a duplicate. *)
+        [(key, value)]
+      | (key', value') :: assoc' ->
+        if key = key' then
+          begin match (value, value') with
+          | TomlTableArray v, TomlTableArray v' ->
+            let new_array = TomlTableArray (List.append v v') in
+            (key, new_array) :: assoc'
+          | _, _ ->
+            if duplicate_check then raise (Duplicate_key key)
+            else (key', value') :: (update assoc' key value)
+          end
+        else (key', value') :: (update assoc' key value)
+    in
+    match toml with
+    | TomlTable fs -> TomlTable (update fs key new_value)
+    | TomlInlineTable fs -> TomlInlineTable (update fs key new_value)
+    | _ -> Printf.ksprintf key_error "cannot update field %s: value is %s, not a table" key (type_string toml)
+
+  let rec insert value path new_value =
+    match path with
+    | [] -> failwith "Cannot update a TOML value at an empty path"
+    | [p] -> insert_field value p new_value
+    | p :: ps ->
+      let nested_value = field_opt p value |> Option.value ~default:(TomlTable []) in
+      let nested_value = insert nested_value ps new_value in
+      insert_field ~duplicate_check:false value p (nested_value)
+
+  let rec from_statements ?(path=[]) toml ss =
+    match ss with
+    | [] -> toml
+    | s :: ss' -> begin
+      match s with
+      | Pair (k, v) ->
+        let toml = insert toml (path @ [k]) v in begin
+          try from_statements ~path:path toml ss'
+          with Duplicate_key k -> parse_error None @@ Printf.sprintf "duplicate key \"%s\" in table [%s]" k (String.concat "." path)
+        end
+      | TableHeader ks -> from_statements ~path:ks toml ss'
+      | _ -> failwith "unimplemented"
+    end
 
   let parse lexbuf =
     try

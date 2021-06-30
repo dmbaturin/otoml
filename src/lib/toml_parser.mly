@@ -1,5 +1,6 @@
 %{
 open Types
+open Parser_utils
 
 %}
 
@@ -21,7 +22,7 @@ open Types
 
 %token EOF
 
-%start <t> toml
+%start <statement list> toml
 %%
 
 key:
@@ -80,7 +81,12 @@ table_array_header:
   | LBRACKET LBRACKET; ks = table_path; RBRACKET RBRACKET { ks }
 
 table_entry:
-  | kv = key_value_pair; { kv }
+  | kv = key_value_pair; 
+    { let (k, v) = kv in Pair (k, v) }
+  | ks = table_header
+    { TableHeader ks }
+  | ks = table_array_header
+    { TableArrayHeader ks }
 
 the_end:
   | NEWLINE+ {}
@@ -94,9 +100,9 @@ let items_on_lines(X) :=
     { x :: xs }
 
 table:
-  es = items_on_lines(key_value_pair); { es }
+  es = items_on_lines(table_entry); { es }
 
 toml: 
-  | NEWLINE*; the_end { TomlTable [] }
+  | NEWLINE*; the_end { [] }
   | NEWLINE*; t = table; the_end;
-    { TomlTable t }
+    { t }
