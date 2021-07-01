@@ -120,7 +120,7 @@ let field_opt k t =
   with Key_error _ -> None
 
 let find accessor value path =
-  let make_dotted_path ps = String.concat "." ps in
+  let make_dotted_path ps = Utils.string_of_path ps in
   let rec aux accessor path value =
     match path with
     | [] -> accessor value
@@ -240,6 +240,19 @@ module Parser = struct
       let nested_value = insert nested_value ps new_value in
       update_field value p (Some nested_value)
 
+  let rec read_table acc stmts =
+    match stmts with
+    | [] ->
+      (* End of file was reached *)
+      (List.rev acc, [])
+    | stmt :: stmts' ->
+      begin match stmt with
+      | Pair (k, v) -> read_table ((k, v) :: acc) stmts'
+      | _ as s ->
+        (* A new table or an array of tables begins here, end of table was reached *)
+        (List.rev acc, (s :: stmts'))
+      end
+
   let rec from_statements ?(path=[]) toml ss =
     match ss with
     | [] -> toml
@@ -251,7 +264,22 @@ module Parser = struct
           with Duplicate_key k -> parse_error None @@ Printf.sprintf "duplicate key \"%s\" in table [%s]" k (String.concat "." path)
         end
       | TableHeader ks -> from_statements ~path:ks toml ss'
-      | _ -> failwith "unimplemented"
+      | TableArrayHeader ks ->
+        let tbl, ss' = read_table [] ss' in
+        let existing_value = find_opt get_value toml ks in
+        begin match existing_value with
+        | Some (TomlTableArray ts) ->
+          (* Array of tables already exists, we need to append a new table to it. *)
+          let toml = update toml ks (Some (TomlTableArray (ts @ [TomlTable tbl]))) in
+          from_statements ~path:path toml ss'
+        | None ->
+          (* It didn't exist before, we need to create it now. *)
+          let toml = insert toml ks (TomlTableArray [TomlTable tbl]) in
+          from_statements ~path:path toml ss'
+        | Some (_ as v) ->
+          parse_error None @@ Printf.sprintf "cannot create a table array [[%s]], it would override a previously defined value of type %s"
+            (Utils.string_of_path ks) (type_string v)
+        end
     end
 
   let parse lexbuf =

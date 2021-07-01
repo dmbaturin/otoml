@@ -34,3 +34,5 @@ let escape_string ?(exclude=[]) s =
   let buf = Buffer.create 4096 in
   let () = String.iter (add_escaped_char buf) s in
   Buffer.contents buf
+
+let string_of_path ps = String.concat "." ps
