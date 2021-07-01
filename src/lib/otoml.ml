@@ -197,7 +197,7 @@ module Parser = struct
         | Not_found -> "invalid syntax (no specific message for this eror)"
 
   let rec _parse lexbuf (checkpoint (* : (signal list) I.checkpoint *)) =
-    match checkpoint with
+     match checkpoint with
     | I.InputNeeded _env ->
       let token = Toml_lexer.token lexbuf in
       let startp = lexbuf.lex_start_p
@@ -216,38 +216,25 @@ module Parser = struct
     | I.Rejected ->
        raise (Parse_error (None, "invalid syntax (parser rejected the input)"))
 
-  let insert_field toml ?(duplicate_check=true) key new_value =
-    let rec update assoc key value =
-      match assoc with
-      | [] ->
-        (* If recursion took us to the end of the list,
-           the key is certainly not a duplicate. *)
-        [(key, value)]
-      | (key', value') :: assoc' ->
-        if key = key' then
-          begin match (value, value') with
-          | TomlTableArray v, TomlTableArray v' ->
-            let new_array = TomlTableArray (List.append v v') in
-            (key, new_array) :: assoc'
-          | _, _ ->
-            if duplicate_check then raise (Duplicate_key key)
-            else (key', value') :: (update assoc' key value)
-          end
-        else (key', value') :: (update assoc' key value)
-    in
-    match toml with
-    | TomlTable fs -> TomlTable (update fs key new_value)
-    | TomlInlineTable fs -> TomlInlineTable (update fs key new_value)
-    | _ -> Printf.ksprintf key_error "cannot update field %s: value is %s, not a table" key (type_string toml)
-
   let rec insert value path new_value =
     match path with
     | [] -> failwith "Cannot update a TOML value at an empty path"
-    | [p] -> insert_field value p new_value
+    | [p] -> begin
+      match value with
+      | TomlTable kvs ->
+        (* XXX: Adding to the end makes the operation quadratic,
+           but I believe preserving the original order is a worthwhile
+           even if the spec does not require it.
+           If this becomes a performance issue, it's possible to reverse the tables just once,
+           when the structure is complete. *)
+        TomlTable (kvs @ [(p, new_value)])
+      | _ -> Printf.ksprintf (parse_error None) "Internal error: cannot update field %s: value is %s, not a table"
+               p (type_string value)
+      end
     | p :: ps ->
       let nested_value = field_opt p value |> Option.value ~default:(TomlTable []) in
       let nested_value = insert nested_value ps new_value in
-      insert_field ~duplicate_check:false value p (nested_value)
+      update_field value p (Some nested_value)
 
   let rec from_statements ?(path=[]) toml ss =
     match ss with
@@ -265,7 +252,8 @@ module Parser = struct
 
   let parse lexbuf =
     try
-      let toml = _parse lexbuf (Toml_parser.Incremental.toml lexbuf.lex_curr_p) in
+      let toml_statements = _parse lexbuf (Toml_parser.Incremental.toml lexbuf.lex_curr_p) in
+      let toml = from_statements (TomlTable []) toml_statements in
       Ok toml
     with
     | Parse_error (pos, err) ->
