@@ -16,6 +16,9 @@ let make_indent indent settings level =
   if not indent then "" else
   String.make (settings.indent_width * level) settings.indent_character
 
+let has_nontable_items t =
+  List.fold_left (fun acc (_, v) -> (match v with TomlTable _ -> false | _ -> true) || acc) false t
+
 let rec format_primitive ?(table_path=[]) ?(inline=false) ?(table_array=false) ?(indent=true) ?(indent_level=0) settings callback v =
   match v with
   | TomlString s ->
@@ -47,7 +50,7 @@ let rec format_primitive ?(table_path=[]) ?(inline=false) ?(table_array=false) ?
     callback "]"
   | TomlTable t ->
     let () =
-      if (table_path <> []) then begin
+      if (table_path <> []) && (has_nontable_items t) then begin
         if settings.newline_before_table then callback "\n";
         (* Table headers look best when they are at the same indent level as the parent table's keys.
            Since the indent level is incremented by the format_pair function,
