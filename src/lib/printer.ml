@@ -55,8 +55,9 @@ let rec format_primitive ?(table_path=[]) ?(inline=false) ?(table_array=false) ?
            for the _current table keys_.
            To compensate for this, we decrement the level by one for header printing. *)
         let indent_string = make_indent indent settings (indent_level - 1) in
-        if table_array then callback @@ Printf.sprintf "%s[[%s]]\n" indent_string (String.concat "." table_path)
-        else callback @@ Printf.sprintf "%s[%s]\n" indent_string (String.concat "." table_path)
+        let path_string = Utils.string_of_path table_path in
+        if table_array then callback @@ Printf.sprintf "%s[[%s]]\n" indent_string path_string
+        else callback @@ Printf.sprintf "%s[%s]\n" indent_string path_string
       end
     in
     let inline = if table_array then false else inline in
@@ -71,7 +72,7 @@ let rec format_primitive ?(table_path=[]) ?(inline=false) ?(table_array=false) ?
     let last_index = (List.length t) - 1 in
     callback "{";
     List.iteri (fun n (k, v) ->
-      callback @@ Printf.sprintf "%s = " k;
+      callback @@ Printf.sprintf "%s = " (Utils.make_printable_key k);
       (* If an _inline_ table contains other tables or table arrays,
          we have to force them all to inline table format to produce valid TOML. *)
       let v = force_inline v in
@@ -102,6 +103,7 @@ and format_pair ?(table_path=[]) ?(indent=true) ?(indent_level=0) ?(inline=false
     in
     List.iter f v
   | _ as v ->
+    let k = Utils.make_printable_key k in
     callback @@ Printf.sprintf "%s%s = " (make_indent indent settings indent_level) k;
     format_primitive ~table_path:table_path ~indent:indent settings callback v;
     if not inline then callback "\n"

@@ -85,7 +85,6 @@ let field_opt k t =
   with Key_error _ -> None
 
 let find accessor value path =
-  let make_dotted_path ps = String.concat "." ps in
   let rec aux accessor path value =
     match path with
     | [] -> accessor value
@@ -97,10 +96,10 @@ let find accessor value path =
     aux accessor path value
   with
   | Key_error msg ->
-    Printf.ksprintf key_error "Failed to retrieve a value at %s: %s" (make_dotted_path path) msg
+    Printf.ksprintf key_error "Failed to retrieve a value at %s: %s" (Utils.string_of_path path) msg
   | Type_error msg ->
     Printf.ksprintf type_error "TOML type error occured while trying to retrieve a value at %s: %s"
-      (make_dotted_path path) msg
+      (Utils.string_of_path path) msg
 
 let find_opt accessor value path =
   try Some (find accessor value path)

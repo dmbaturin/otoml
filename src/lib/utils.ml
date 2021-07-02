@@ -35,4 +35,20 @@ let escape_string ?(exclude=[]) s =
   let () = String.iter (add_escaped_char buf) s in
   Buffer.contents buf
 
-let string_of_path ps = String.concat "." ps
+let valid_bare_key s =
+  let good_for_bare_key c =
+    match c with
+    | 'a' .. 'z' | 'A' .. 'Z' | '-' | '_' -> true
+    | _ -> false
+  in
+  (* The spec says that empty keys are "valid but discouraged",
+     so we have to handle then. *)
+  if s = "" then false else
+  String.to_seq s |> Seq.fold_left (fun acc c -> acc && (good_for_bare_key c)) true
+
+let make_printable_key k =
+  if not (valid_bare_key k) then Printf.sprintf "\"%s\"" (escape_string k)
+  else k
+
+let string_of_path ps =
+  List.map make_printable_key ps |> String.concat "."
