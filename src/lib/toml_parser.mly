@@ -9,6 +9,8 @@ open Parser_utils
 %token RBRACE
 %token LBRACKET
 %token RBRACKET
+%token LDBRACKET
+%token RDBRACKET
 %token COMMA
 %token DOT
 %token NEWLINE
@@ -78,7 +80,7 @@ table_header:
   | LBRACKET; ks = table_path; RBRACKET { ks }
 
 table_array_header:
-  | LBRACKET LBRACKET; ks = table_path; RBRACKET RBRACKET { ks }
+  | LDBRACKET; ks = table_path; RDBRACKET { ks }
 
 table_entry:
   | kv = key_value_pair; 

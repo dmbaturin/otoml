@@ -70,6 +70,8 @@ rule token = parse
 | "=" { EQ }
 | '{' { LBRACE }
 | '}' { RBRACE }
+| '[' '[' { LDBRACKET }
+| ']' ']' { RDBRACKET }
 | '[' { LBRACKET }
 | ']' { RBRACKET }
 | '.' { DOT }
