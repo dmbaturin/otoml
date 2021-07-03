@@ -331,7 +331,9 @@ module Parser = struct
              *)
             parse_error None @@ Printf.sprintf "in table [%s]: %s" (Utils.string_of_path path) err
         end
-      | TableHeader ks -> from_statements ~path:ks toml ss'
+      | TableHeader ks ->
+        let toml = insert toml ks (TomlTable []) in
+        from_statements ~path:ks toml ss'
       | TableArrayHeader ks ->
         let tbl, ss' = read_table [] ss' in
         let existing_value = find_opt get_value toml ks in
