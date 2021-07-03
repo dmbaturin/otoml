@@ -267,6 +267,50 @@ module Parser = struct
         (List.rev acc, (s :: stmts'))
       end
 
+  (* The insert function takes care of finding duplicate leaf keys in tables
+     and preventing attempts to override a leaf key with a subtable when inserting a value at a path.
+
+     Unfortunately, that is not enough to detect duplicate table headers
+     since multiple paths that share the same prefix are perfectly normal,
+     only exact duplicates like a "[foo.bar]" written twice are invalid.
+
+     Here we sort the list of table headers in a "natural order"
+     and check if any two adjacent items are equal.
+     If they are, there's a table declared at least twice in the file.
+   *)
+
+  (* The "natural order" is defined as follows:
+       0. Empty paths are equal.
+       1. Any non-empty path is greater than an empty one.
+       2. Non-empty paths with non-equal first items k and k' relate as their first items
+          (e.g. [1;2;3] < [2; 3])
+       3. Non-empty paths that start with the same item relate as their tails.
+
+     Hopefully this covers all possible cases.
+   *)
+  let rec compare_paths ks ks' =
+    match ks, ks' with
+    | [], [] -> 0
+    | (_ :: _), [] -> 1
+    | [], (_ :: _) -> -1
+    | (k :: ks), (k' :: ks') ->
+      if k = k' then compare_paths ks ks' else
+      compare k k'
+
+  let rec find_duplicates ps =
+    match ps with
+    | [] | [_] -> None
+    | p :: p' :: ps ->
+      if p = p' then (Some p) else find_duplicates (p' :: ps)
+
+  let check_duplicate_tables ps =
+    let table_headers = List.fold_left (fun acc s -> match s with TableHeader ps -> ps :: acc | _ -> acc) [] ps in
+    let duplicates = find_duplicates table_headers in
+    match duplicates with
+    | None -> ()
+    | Some p ->
+      Printf.ksprintf (parse_error None) "table [%s] is defined more than once" (Utils.string_of_path p)
+
   let rec from_statements ?(path=[]) toml ss =
     match ss with
     | [] -> toml
@@ -306,6 +350,7 @@ module Parser = struct
   let parse lexbuf =
     try
       let toml_statements = _parse lexbuf (Toml_parser.Incremental.toml lexbuf.lex_curr_p) in
+      let () = check_duplicate_tables toml_statements in
       let toml = from_statements (TomlTable []) toml_statements in
       Ok toml
     with
