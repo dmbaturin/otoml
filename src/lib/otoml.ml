@@ -179,6 +179,10 @@ let rec update value ?(use_inline_tables=false) path new_value =
     let nested_value = update nested_value ps new_value in
     update_field value p (Some nested_value)
 
+module Utils = struct
+  include Utils
+end
+
 module Printer = struct
   include Printer
 end
