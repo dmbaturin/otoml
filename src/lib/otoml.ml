@@ -189,6 +189,7 @@ module Parser = struct
 
   exception Duplicate_key of string
 
+  let duplicate_key_error msg = raise (Duplicate_key msg)
   let parse_error pos msg = raise (Parse_error (pos, msg))
 
   module I = Toml_parser.MenhirInterpreter
@@ -231,14 +232,27 @@ module Parser = struct
            even if the spec does not require it.
            If this becomes a performance issue, it's possible to reverse the tables just once,
            when the structure is complete. *)
-        TomlTable (kvs @ [(p, new_value)])
-      | _ -> Printf.ksprintf (parse_error None) "Internal error: cannot update field %s: value is %s, not a table"
-               p (type_string value)
+        let orig_value = List.assoc_opt p kvs in begin
+        match orig_value with
+        | Some orig_value ->
+          Printf.ksprintf duplicate_key_error "duplicate key \"%s\" (overrides an original value of type %s with %s)"
+            p (type_string orig_value) (type_string new_value)
+        | None -> TomlTable (kvs @ [(p, new_value)])
+        end
+      | _ ->
+        Printf.ksprintf duplicate_key_error "subtable \"%s\" overrides a previously defined key (original value had type %s)"
+          p (type_string new_value)
       end
     | p :: ps ->
-      let nested_value = field_opt p value |> Option.value ~default:(TomlTable []) in
-      let nested_value = insert nested_value ps new_value in
-      update_field value p (Some nested_value)
+      let nested_value = field_opt p value |> Option.value ~default:(TomlTable []) in begin
+      match nested_value with
+      | TomlTable _ ->
+        let nested_value = insert nested_value ps new_value in
+        update_field value p (Some nested_value)
+      | _ ->
+        Printf.ksprintf duplicate_key_error "subtable \"%s\" overrides a previously defined key (original value had type %s)"
+          p (type_string value)
+      end
 
   let rec read_table acc stmts =
     match stmts with
@@ -261,7 +275,13 @@ module Parser = struct
       | Pair (k, v) ->
         let toml = insert toml (path @ [k]) v in begin
           try from_statements ~path:path toml ss'
-          with Duplicate_key k -> parse_error None @@ Printf.sprintf "duplicate key \"%s\" in table [%s]" k (String.concat "." path)
+          with Duplicate_key err ->
+            (* A distinct exception is used here to allow it to propagate up
+               across multiple recursion levels, so that we can print a full path to the table
+               where duplication occurs.
+               If we reused Parse_error, it would be caught and re-raised at each leve.
+             *)
+            parse_error None @@ Printf.sprintf "in table [%s]: %s" (Utils.string_of_path path) err
         end
       | TableHeader ks -> from_statements ~path:ks toml ss'
       | TableArrayHeader ks ->
@@ -277,6 +297,7 @@ module Parser = struct
           let toml = insert toml ks (TomlTableArray [TomlTable tbl]) in
           from_statements ~path:path toml ss'
         | Some (_ as v) ->
+          (* Some other value already exists at that path, so it's not a valid TOML. *)
           parse_error None @@ Printf.sprintf "cannot create a table array [[%s]], it would override a previously defined value of type %s"
             (Utils.string_of_path ks) (type_string v)
         end
