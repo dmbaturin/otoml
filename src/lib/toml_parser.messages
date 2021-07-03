@@ -109,7 +109,7 @@ toml: NEWLINE RDBRACKET
 ##
 ## Ends in an error in state: 1.
 ##
-## list(NEWLINE) -> NEWLINE . list(NEWLINE) [ STRING RBRACKET NEWLINE LDBRACKET LBRACKET LBRACE KEY INTEGER FLOAT EOF COMMA BOOLEAN ]
+## list(NEWLINE) -> NEWLINE . list(NEWLINE) [ STRING RBRACKET NEWLINE MULTILINE_STRING LDBRACKET LBRACKET LBRACE KEY INTEGER FLOAT EOF COMMA BOOLEAN ]
 ##
 ## The known suffix of the stack is as follows:
 ## NEWLINE
@@ -131,7 +131,7 @@ toml: RDBRACKET
 
 toml: STRING EQ BOOLEAN EOF NEWLINE STRING
 ##
-## Ends in an error in state: 58.
+## Ends in an error in state: 59.
 ##
 ## the_end -> nonempty_list(NEWLINE) . [ # ]
 ## the_end -> nonempty_list(NEWLINE) . EOF [ # ]
@@ -150,7 +150,7 @@ toml: STRING EQ BOOLEAN EOF NEWLINE STRING
 
 toml: STRING EQ BOOLEAN EOF STRING
 ##
-## Ends in an error in state: 56.
+## Ends in an error in state: 57.
 ##
 ## toml -> list(NEWLINE) table . the_end [ # ]
 ##
@@ -188,7 +188,7 @@ toml: STRING EQ BOOLEAN STRING
 
 toml: STRING EQ LBRACE RDBRACKET
 ##
-## Ends in an error in state: 34.
+## Ends in an error in state: 35.
 ##
 ## inline_table -> LBRACE . loption(separated_nonempty_list(COMMA,key_value_pair)) RBRACE [ RBRACKET RBRACE NEWLINE EOF COMMA ]
 ##
@@ -200,7 +200,7 @@ toml: STRING EQ LBRACE RDBRACKET
 
 toml: STRING EQ LBRACE STRING EQ BOOLEAN COMMA RDBRACKET
 ##
-## Ends in an error in state: 39.
+## Ends in an error in state: 40.
 ##
 ## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair COMMA . separated_nonempty_list(COMMA,key_value_pair) [ RBRACE ]
 ##
@@ -212,7 +212,7 @@ toml: STRING EQ LBRACE STRING EQ BOOLEAN COMMA RDBRACKET
 
 toml: STRING EQ LBRACE STRING EQ BOOLEAN STRING
 ##
-## Ends in an error in state: 38.
+## Ends in an error in state: 39.
 ##
 ## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . [ RBRACE ]
 ## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . COMMA separated_nonempty_list(COMMA,key_value_pair) [ RBRACE ]
@@ -225,7 +225,7 @@ toml: STRING EQ LBRACE STRING EQ BOOLEAN STRING
 
 toml: STRING EQ LBRACKET NEWLINE RBRACKET
 ##
-## Ends in an error in state: 33.
+## Ends in an error in state: 34.
 ##
 ## array -> LBRACKET list(NEWLINE) . item_sequence(COMMA,value) list(NEWLINE) RBRACKET [ RBRACKET RBRACE NEWLINE EOF COMMA ]
 ##
@@ -244,7 +244,7 @@ toml: STRING EQ LBRACKET NEWLINE RBRACKET
 
 toml: STRING EQ LBRACKET RDBRACKET
 ##
-## Ends in an error in state: 32.
+## Ends in an error in state: 33.
 ##
 ## array -> LBRACKET . list(NEWLINE) item_sequence(COMMA,value) list(NEWLINE) RBRACKET [ RBRACKET RBRACE NEWLINE EOF COMMA ]
 ##
@@ -256,7 +256,7 @@ toml: STRING EQ LBRACKET RDBRACKET
 
 toml: STRING EQ LBRACKET STRING COMMA NEWLINE RBRACKET
 ##
-## Ends in an error in state: 47.
+## Ends in an error in state: 48.
 ##
 ## item_sequence(COMMA,value) -> value list(NEWLINE) COMMA list(NEWLINE) . item_sequence(COMMA,value) [ RBRACKET NEWLINE ]
 ##
@@ -275,7 +275,7 @@ toml: STRING EQ LBRACKET STRING COMMA NEWLINE RBRACKET
 
 toml: STRING EQ LBRACKET STRING COMMA RDBRACKET
 ##
-## Ends in an error in state: 46.
+## Ends in an error in state: 47.
 ##
 ## item_sequence(COMMA,value) -> value list(NEWLINE) COMMA . list(NEWLINE) item_sequence(COMMA,value) [ RBRACKET NEWLINE ]
 ##
@@ -287,7 +287,7 @@ toml: STRING EQ LBRACKET STRING COMMA RDBRACKET
 
 toml: STRING EQ LBRACKET STRING NEWLINE BOOLEAN
 ##
-## Ends in an error in state: 45.
+## Ends in an error in state: 46.
 ##
 ## item_sequence(COMMA,value) -> value list(NEWLINE) . [ RBRACKET NEWLINE ]
 ## item_sequence(COMMA,value) -> value list(NEWLINE) . COMMA list(NEWLINE) item_sequence(COMMA,value) [ RBRACKET NEWLINE ]
@@ -307,7 +307,7 @@ toml: STRING EQ LBRACKET STRING NEWLINE BOOLEAN
 
 toml: STRING EQ LBRACKET STRING STRING
 ##
-## Ends in an error in state: 44.
+## Ends in an error in state: 45.
 ##
 ## item_sequence(COMMA,value) -> value . list(NEWLINE) [ RBRACKET NEWLINE ]
 ## item_sequence(COMMA,value) -> value . list(NEWLINE) COMMA list(NEWLINE) item_sequence(COMMA,value) [ RBRACKET NEWLINE ]

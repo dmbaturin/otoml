@@ -20,6 +20,7 @@ open Parser_utils
 %token <int> INTEGER
 %token <float> FLOAT
 %token <string> STRING
+%token <string> MULTILINE_STRING
 %token <string> KEY
 
 %token EOF
@@ -41,6 +42,8 @@ value:
   | f = FLOAT
     { TomlFloat f }
   | s = STRING
+    { TomlString s }
+  | s = MULTILINE_STRING
     { TomlString s }
   | a = array
     { TomlArray a }
