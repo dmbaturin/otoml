@@ -44,9 +44,13 @@ let t_integer_part  = '0' | ['1'-'9'] ('_'? t_digit+)*
 let t_exponent = ['e' 'E'] t_sign? t_integer_part
 
 (* This covers decimals (42, +42, -42)
-   and prefixed base-2/8/16 integers (+0xFF, -0o54, 0xDEAD_BEEF...)
+   and prefixed base-2/8/16 integers (0xFF, 0o54, 0xDEAD_BEEF...)
+
+   As the spec says:
+   "Non-negative integer values may also be expressed in hexadecimal, octal, or binary.
+    In these formats, leading + is not allowed and leading zeros are allowed (after the prefix)"
  *)
-let t_integer = t_sign? t_base_prefix? t_integer_part
+let t_integer = t_sign? t_integer_part | t_base_prefix '0'* t_integer_part
 
 (* Numbers with an exponent are always interpreted as floats.
    The spec disallows floats with an implicit integer/fractional part, like 42. and .42,
