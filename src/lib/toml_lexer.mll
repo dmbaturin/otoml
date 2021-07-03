@@ -34,7 +34,6 @@ let lexing_error lexbuf msg =
 
 let t_digit = ['0'-'9']
 let t_sign = ['+' '-']
-let t_base_prefix = '0' ['x' 'X' 'o' 'O' 'b' 'B']
 
 (* Numbers must not have leading zeroes.
    Digits may be separated by a single underscore.
@@ -50,7 +49,21 @@ let t_exponent = ['e' 'E'] t_sign? t_integer_part
    "Non-negative integer values may also be expressed in hexadecimal, octal, or binary.
     In these formats, leading + is not allowed and leading zeros are allowed (after the prefix)"
  *)
-let t_integer = t_sign? t_integer_part | t_base_prefix '0'* t_integer_part
+
+let t_bin_digit = ['0' - '1']
+let t_bin_integer_part = t_bin_digit ('_'? t_bin_digit+)*
+
+let t_oct_digit = ['0' - '7']
+let t_oct_integer_part = t_oct_digit ('_'? t_oct_digit+)*
+
+let t_hex_digit = ['0' - '9' 'a' - 'f' 'A' - 'F']
+let t_hex_integer_part = t_hex_digit ('_'? t_hex_digit+)*
+
+let t_integer =
+  t_sign? t_integer_part 
+| "0x" '0'* t_bin_integer_part
+| "0o" '0'* t_oct_integer_part
+| "0x" '0'* t_hex_integer_part
 
 (* Numbers with an exponent are always interpreted as floats.
    The spec disallows floats with an implicit integer/fractional part, like 42. and .42,
