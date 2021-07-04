@@ -44,6 +44,51 @@ let validate_unicode lexbuf s =
       c line column
     in raise (Parse_error (None, msg))
 
+(* "Date validation".
+
+    The goal is to reject completely implausible dates,
+    since deep validation (if the user wants to work with dates to begin with)
+    can and should be done by a real calendar library.
+
+    Exception handling is added just in case.
+    In practice invalid integers shouldn't make it that far so int_of_string should work,
+    and int_of_string is the only function that can fail there,
+    but it's probably better to be on the safe side.
+ *)
+let valid_time hours minutes seconds =
+  try
+    ((int_of_string hours) <= 23) &&
+    ((int_of_string minutes) <= 59) &&
+    ((int_of_string seconds) <= 60) (* Leap second is a real thing. *)
+  with _ -> false
+
+let valid_date year month day =
+  try
+    let year, month, day =
+      int_of_string year, int_of_string month, int_of_string day
+    in
+    (year >= 1) &&
+    ((month >= 1) && (month <= 12)) &&
+    (day >= 1) &&
+    (if month = 2 then (day <= 29) else (day <= 31))
+    (* || ((year = 1993) && (month = 9)) *)
+  with _ -> false
+
+let valid_timezone hours minutes =
+  match (hours, minutes) with
+  | Some hours, Some minutes -> begin
+      try
+        ((int_of_string hours) <= 23) &&
+        ((int_of_string minutes) <= 59)
+      with _ -> false
+    end
+  | _, _ ->
+    (* They can only be both Some or both None.
+       The latter happens when a datetime uses "Z" instead of a timezone,
+       in that case the timezone doesn't need checking.
+     *)
+    true
+
 let add_utf8_char lexbuf buf num_s =
   try
     let num = int_of_string ("0x" ^ num_s) in
@@ -139,14 +184,22 @@ let t_float = t_float_number | (t_sign? ("nan" | "inf"))
 
 (* Date and time *)
 
-let t_time = t_digit t_digit ':' t_digit t_digit ':' t_digit t_digit ('.' t_digit+)?
+let t_time =
+  (t_digit t_digit as hours)   ':'
+  (t_digit t_digit as minutes) ':'
+  (t_digit t_digit as seconds)
+  ('.' t_digit+)?
 
 (* Timezone part: either Z/z (Zulu time = UTC) or offset: +05:45, -08:00... *)
 
-let t_timezone = ('Z' | 'z') | (t_sign t_digit t_digit ':' t_digit t_digit)
+let t_timezone =
+  ('Z' | 'z') | (t_sign (t_digit t_digit as tz_hours) ':' (t_digit t_digit as tz_minutes))
 
 (* Date part: 1970-01-01 *)
-let t_date = t_digit t_digit t_digit t_digit '-' t_digit t_digit '-' t_digit t_digit
+let t_date =
+  (t_digit t_digit t_digit t_digit as year) '-'
+  (t_digit t_digit as month)                '-'
+  (t_digit t_digit as day)
 
 (* For the sake of readability, you may replace the T delimiter between date and time with a space character
    (as permitted by RFC 3339 section 5.6).
@@ -181,10 +234,26 @@ rule token = parse
 | '.' { DOT }
 | ',' { COMMA }
 (* Primitive values *)
-| t_time as t { LOCAL_TIME(t) }
-| t_date as d { LOCAL_DATE(d) }
-| t_local_datetime as dt { LOCAL_DATETIME(dt) }
-| t_offset_datetime as dt { OFFSET_DATETIME(dt) }
+| t_time as t
+  {
+    if valid_time hours minutes seconds then LOCAL_TIME(t) else
+    lexing_error lexbuf @@ Printf.sprintf "%s is not a valid time" t
+  }
+| t_date as d
+  { if valid_date year month day then LOCAL_DATE(d) else
+    lexing_error lexbuf @@ Printf.sprintf "%s is not a valid date" d
+  }
+| t_local_datetime as dt
+  {
+    if (valid_date year month day) && (valid_time hours minutes seconds) then LOCAL_DATETIME(dt) else
+    lexing_error lexbuf @@ Printf.sprintf "%s is not a valid local datetime" dt
+  }
+| t_offset_datetime as dt
+  {
+    if (valid_date year month day) && (valid_time hours minutes seconds) && (valid_timezone tz_hours tz_minutes)
+    then OFFSET_DATETIME(dt)
+    else lexing_error lexbuf @@ Printf.sprintf "%s is not a valid datetime" dt
+  }
 | t_integer as s
   (* int_of_string correctly handles all possible TOML integers,
      including underscores and leading + *)
