@@ -92,7 +92,10 @@ let t_sign = ['+' '-']
  *)
 let t_integer_part  = '0' | ['1'-'9'] ('_'? t_digit+)*
 
-let t_exponent = ['e' 'E'] t_sign? t_integer_part
+(* >An exponent part is an E (upper or lower case) followed by an integer part
+   >(which follows the same rules as decimal integer values but may include leading zeros).
+ *)
+let t_exponent = ['E' 'e'] t_sign? '0'* t_integer_part
 
 (* This covers decimals (42, +42, -42)
    and prefixed base-2/8/16 integers (0xFF, 0o54, 0xDEAD_BEEF...)
@@ -122,7 +125,17 @@ let t_integer =
    so we don't cover those cases.
   *)
 let t_fractional_part = '.' t_digit ('_'? t_digit+)*
-let t_float = t_sign? t_integer_part ((t_fractional_part t_exponent?) | t_exponent)
+let t_float_number = t_sign? t_integer_part ((t_fractional_part t_exponent?) | t_exponent)
+
+(* >Special float values can also be expressed. They are always lowercase.
+
+  Conveniently, the float_of_string function allows every special value string required by TOML:
+  nan, +nan, -nan, inf, +inf, -inf
+
+  +nan and -nan are both interpreted as just a nan
+
+ *)
+let t_float = t_float_number | (t_sign? ("nan" | "inf"))
 
 (* Date and time *)
 
