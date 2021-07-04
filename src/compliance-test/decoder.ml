@@ -6,13 +6,14 @@ let type_string v =
   | TomlInteger _ -> "integer"
   | TomlFloat _ -> "float"
   | TomlBoolean _ -> "bool"
-  | TomlLocalTime _ -> "local-time"
-  | TomlLocalDate _ -> "local-date"
-  | TomlLocalDateTime _ -> "local date-time"
-  | TomlOffsetDateTime _ -> "offset date-time"
+  | TomlLocalTime _ -> "time-local"
+  | TomlLocalDate _ -> "date-local"
+  | TomlLocalDateTime _ -> "datetime-local"
+  | TomlOffsetDateTime _ -> "datetime"
+  (* Not actually needed here since the testsuite runner
+     expects arrays and tables to become normal JSON lists and objects. *)
   | TomlArray _ -> "array"
   | TomlTable _ | TomlInlineTable _ | TomlTableArray _ -> "table"
-
 
 let rec to_json t =
   match t with
@@ -30,13 +31,16 @@ and json_of_value v =
   match v with
   | TomlInteger i -> `Assoc [typ; "value", `String (string_of_int i)]
   | TomlFloat f -> `Assoc [typ; "value", `String (string_of_float f)]
-  | TomlString s -> `Assoc [typ; "value", `String ( s)]
+  | TomlString s -> `Assoc [typ; "value", `String (s)]
   | TomlBoolean b -> `Assoc [typ; "value", `String (string_of_bool b)]
+  | TomlLocalTime s -> `Assoc [typ; "value", `String (s)]
+  | TomlLocalDate s -> `Assoc [typ; "value", `String (s)]
+  | TomlLocalDateTime s -> `Assoc [typ; "value", `String (s)]
+  | TomlOffsetDateTime s -> `Assoc [typ; "value", `String (s)]
   | TomlTable _ as t -> to_json t
   | TomlInlineTable _ as t -> to_json t
   | TomlArray _ as a -> to_json a
   | TomlTableArray _ as a -> to_json a
-  | _ -> failwith "unimplemented"
 
 let () =
   let res = Parser.from_channel stdin in

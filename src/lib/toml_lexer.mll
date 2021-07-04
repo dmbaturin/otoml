@@ -76,6 +76,10 @@ let newlines lexbuf s =
     | '\n' -> Lexing.new_line lexbuf
     | _ -> ()
   in String.iter (newline lexbuf) s
+
+let move_position lexbuf n =
+  let open Lexing in
+  lexbuf.lex_curr_pos <- (lexbuf.lex_curr_pos + n)
 }
 
 (** Reusable numeric regexes *)
@@ -122,9 +126,27 @@ let t_float = t_sign? t_integer_part ((t_fractional_part t_exponent?) | t_expone
 
 (* Date and time *)
 
-let t_time_group = t_digit t_digit
-let t_local_time = t_time_group ':' t_time_group ':' t_time_group ('.' t_digit+)?
+let t_time = t_digit t_digit ':' t_digit t_digit ':' t_digit t_digit ('.' t_digit+)?
 
+(* Timezone part: either Z/z (Zulu time = UTC) or offset: +05:45, -08:00... *)
+
+let t_timezone = ('Z' | 'z') | (t_sign t_digit t_digit ':' t_digit t_digit)
+
+(* Date part: 1970-01-01 *)
+let t_date = t_digit t_digit t_digit t_digit '-' t_digit t_digit '-' t_digit t_digit
+
+(* For the sake of readability, you may replace the T delimiter between date and time with a space character
+   (as permitted by RFC 3339 section 5.6).
+
+   RFC 3339 explcitly allows lowercase 't' and 'z':
+   > NOTE: Per [ABNF] and ISO8601, the "T" and "Z" characters in this
+   > syntax may alternatively be lower case "t" or "z" respectively.
+ *)
+let t_local_datetime = t_date ('T' | 't' | ' ') t_time
+let t_offset_datetime = t_date ('T' | 't' | ' ') t_time t_timezone
+
+
+(* Unicode escape sequences, for \uXXXX and \uXXXXXXXX. *)
 let t_unicode =
   (t_hex_digit t_hex_digit t_hex_digit t_hex_digit) |
   (t_hex_digit t_hex_digit t_hex_digit t_hex_digit
@@ -146,6 +168,10 @@ rule token = parse
 | '.' { DOT }
 | ',' { COMMA }
 (* Primitive values *)
+| t_time as t { LOCAL_TIME(t) }
+| t_date as d { LOCAL_DATE(d) }
+| t_local_datetime as dt { LOCAL_DATETIME(dt) }
+| t_offset_datetime as dt { OFFSET_DATETIME(dt) }
 | t_integer as s
   (* int_of_string correctly handles all possible TOML integers,
      including underscores and leading + *)
@@ -262,12 +288,18 @@ and read_double_quoted_multiline_string buf =
   | '\n'      { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_double_quoted_multiline_string buf lexbuf }
   | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_multiline_string buf lexbuf }
   | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F'] as bad_char
-    { lexing_error lexbuf @@
-        Printf.sprintf "character '%s' is not allowed inside a string literal without escaping"
-        (Char.escaped bad_char)
+    {
+       lexing_error lexbuf @@
+         Printf.sprintf "character '%s' is not allowed inside a string literal without escaping"
+         (Char.escaped bad_char)
     }
-  | ('"' [^ '"'] | '"' '"' [^ '"']  | [^ '"' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F']+)
-    { Buffer.add_string buf (Lexing.lexeme lexbuf);
+  | '"' [^ '"']
+    { Buffer.add_string buf "\""; move_position lexbuf (~-1); read_double_quoted_multiline_string buf lexbuf }
+  | '"' '"' [^ '"']
+    { Buffer.add_string buf "\"\""; move_position lexbuf (~-1); read_double_quoted_multiline_string buf lexbuf }
+  | [^ '"' '\x00'-'\x08' '\n' '\x0B'-'\x1F' '\x7F' '\\']+
+    {
+      Buffer.add_string buf (Lexing.lexeme lexbuf); 
       read_double_quoted_multiline_string buf lexbuf
     }
   | eof { lexing_error lexbuf "double-quoted multiline string is missing the closing double quotes" }

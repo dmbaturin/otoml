@@ -21,6 +21,10 @@ open Parser_utils
 %token <float> FLOAT
 %token <string> STRING
 %token <string> MULTILINE_STRING
+%token <string> LOCAL_TIME
+%token <string> LOCAL_DATE
+%token <string> LOCAL_DATETIME
+%token <string> OFFSET_DATETIME
 %token <string> KEY
 
 %token EOF
@@ -45,6 +49,14 @@ value:
     { TomlString s }
   | s = MULTILINE_STRING
     { TomlString s }
+  | t = LOCAL_TIME
+    { TomlLocalTime t }
+  | d = LOCAL_DATE
+    { TomlLocalDate d }
+  | dt = LOCAL_DATETIME
+    { TomlLocalDateTime dt }
+  | dt = OFFSET_DATETIME
+    { TomlOffsetDateTime dt }
   | a = array
     { TomlArray a }
   | i = inline_table
