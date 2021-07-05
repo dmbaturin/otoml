@@ -68,16 +68,17 @@ value:
 let item_sequence(Sep, X) :=
 (*  | (* empty *)
     { [] } *)
-  | x = X; NEWLINE*;
+  | x = X; 
     { [x] }
-  | x = X; NEWLINE*; Sep; NEWLINE*; xs = item_sequence(Sep, X);
+  | x = X; Sep; xs = item_sequence(Sep, X);
     { x :: xs }
 
 array:
-  | LBRACKET; NEWLINE*; vs = item_sequence(COMMA, value); NEWLINE*; RBRACKET { vs }
+  | LBRACKET; RBRACKET { [] }
+  | LBRACKET; vs = item_sequence(COMMA, value); RBRACKET { vs }
 
 key_value_pair:
-  | k = key; EQ; v = value; { (k, v) }
+  | k = key; EQ; v = value; { (k, v) } 
 
 (* Unlike arrays, inline tables do not allow trailing commas and newlines inside
    (for whatever reason, I hope TOML standard maintainers eventually reconsider it).
@@ -105,13 +106,9 @@ table_entry:
   | ks = table_array_header
     { TableArrayHeader ks }
 
-the_end:
-  | NEWLINE+ {}
-  | NEWLINE+; EOF {}
-  | EOF {}
-
 let items_on_lines(X) :=
-  | x = X; the_end;
+  | { [] }
+  | x = X; 
     { [x] }
   | x = X; NEWLINE+; xs = items_on_lines(X);
     { x :: xs }
@@ -120,6 +117,4 @@ table:
   es = items_on_lines(table_entry); { es }
 
 toml: 
-  | NEWLINE*; the_end { [] }
-  | NEWLINE*; t = table; the_end;
-    { t }
+  | NEWLINE*; t = table; EOF { t }

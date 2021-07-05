@@ -125,6 +125,78 @@ let newlines lexbuf s =
 let move_position lexbuf n =
   let open Lexing in
   lexbuf.lex_curr_pos <- (lexbuf.lex_curr_pos + n)
+
+(* Lexer hack for context tracking.
+
+   The issue on hand is that TOML is not context-free
+   and there are constructs that cannot be correctly interpreted without knowing
+   where we are.
+
+   For example, consider `[[false]]`. It can be either:
+   * a header of an array of tables named "false"
+   * a nested array that contains a single boolean value `false`
+
+   Another issue is that keys can be anything. There are no reserved keywords
+   and no unambiguous key regex. `true = false` is a valid key/value pair.
+   Thus to allow all possible keys, we need to know which side of the `=` sign we are.
+
+   The contexts are:
+   * top level
+     Parsing starts in this context.
+     In the top level context, everything in square brackets is a table header,
+     and everything else is a key.
+   * value context
+     Entered from the top level context when a `=` is seen after a key.
+     In this context anything in square brackets is an array,
+     and other values are interpreted in a typed manner.
+   * array context
+     Entered from value context when a square bracket is seen.
+     
+
+   That is why we introduce a context stack.
+
+   Parsing starts in the "top level" 
+ *)
+
+type context = ConValue | ConInlineTable | ConInlineTableValue | ConArray
+
+
+let context_stack : (context list) ref = ref []
+
+let in_top_level () =
+  !context_stack = []
+
+let in_value () =
+  match !context_stack with
+  | ConValue :: _ -> true
+  | _ -> false
+
+let in_array () =
+  match !context_stack with
+  | ConArray :: _ -> true
+  | _ -> false
+
+let in_inline_table () =
+  match !context_stack with
+  | ConInlineTable :: _ -> true
+  | _ -> false
+
+let in_inline_table_value () =
+  match !context_stack with
+  | ConInlineTableValue :: _ -> true
+  | _ -> false
+
+let exit_context () =
+  let cs = !context_stack in
+  match cs with
+  | [] -> failwith "Lexer is trying to exit the top level context"
+  | _ :: cs' -> context_stack := cs'
+
+let enter_value () = context_stack := (ConValue :: !context_stack)
+let enter_array () = context_stack := (ConArray :: !context_stack)
+let enter_inline_table () = context_stack := (ConInlineTable :: !context_stack)
+let enter_inline_table_value () = context_stack := (ConInlineTableValue :: !context_stack)
+
 }
 
 (** Reusable numeric regexes *)
@@ -160,7 +232,7 @@ let t_hex_digit = ['0'-'9' 'a'-'f' 'A'-'F']
 let t_hex_integer_part = t_hex_digit ('_'? t_hex_digit+)*
 
 let t_integer =
-  t_sign? t_integer_part 
+  (t_sign as integer_sign)? t_integer_part 
 | "0b" '0'* t_bin_integer_part
 | "0o" '0'* t_oct_integer_part
 | "0x" '0'* t_hex_integer_part
@@ -170,7 +242,7 @@ let t_integer =
    so we don't cover those cases.
   *)
 let t_fractional_part = '.' t_digit ('_'? t_digit+)*
-let t_float_number = t_sign? t_integer_part ((t_fractional_part t_exponent?) | t_exponent)
+let t_float_number = t_integer_part ((t_fractional_part t_exponent?) | t_exponent)
 
 (* >Special float values can also be expressed. They are always lowercase.
 
@@ -180,7 +252,7 @@ let t_float_number = t_sign? t_integer_part ((t_fractional_part t_exponent?) | t
   +nan and -nan are both interpreted as just a nan
 
  *)
-let t_float = t_float_number | (t_sign? ("nan" | "inf"))
+let t_float = (t_sign as float_sign)? ((t_float_number | "nan" | "inf") as float_value)
 
 (* Date and time *)
 
@@ -222,19 +294,81 @@ let t_invalid_escape = '\\' ([^ ' ' '\t' '\r' '\n' 'b' 'n' 'f' 'r' 't' '\\'] as 
 
 rule token = parse
 (* Whitespace *)
-| ('\n' | '\r' '\n') { Lexing.new_line lexbuf; NEWLINE }
+| ('\n' | '\r' '\n')
+  {
+    (* The only universal statement about newlines -- they increase the line counter. *)
+    Lexing.new_line lexbuf;
+
+    match !context_stack with
+    | (ConInlineTable :: _) | (ConInlineTableValue :: _) ->
+      (* Inside inline tables, newlines shouldn't occur at all. *)
+      lexing_error lexbuf "line breaks are not allowed inside inline tables"
+    | ConArray :: _ ->
+      (* Inside arrays, newlines don't matter at all. *)
+      token lexbuf
+    | ConValue :: _ ->
+      (* In the value context, a newline means we are back to the top level context,
+         so we emit a NEWLINE token to let the parser use it as a key/value pair separator. *)
+      let () = exit_context () in
+      NEWLINE
+    | [] ->
+      (* In the top level context, we just emit a newline as a statement terminator
+         (it may terminate a table header ([table], [[tarray]]) or an empty statement. *)
+      NEWLINE 
+ }
 | [' ' '\t']
   { token lexbuf }
 (* Punctuation *)
-| "=" { EQ }
-| '{' { LBRACE }
-| '}' { RBRACE }
-| '[' '[' { LDBRACKET }
-| ']' ']' { RDBRACKET }
-| '[' { LBRACKET }
-| ']' { RBRACKET }
+| "="
+  {
+    let () =
+      if in_top_level () then enter_value ()
+      else if in_inline_table () then enter_inline_table_value ()
+    in
+    EQ 
+  }
+| '{'
+  {
+    let () = enter_inline_table () in
+    LBRACE
+  }
+| '}'
+  {
+    let () =
+      (* If we were in the last value of that table,
+         we need to exit both the value context and the parent inline table context. *)
+      if in_inline_table_value () then (exit_context (); exit_context())
+      else exit_context ()
+    in
+    RBRACE
+  }
+| '[' '['
+  {
+    if in_top_level () then LDBRACKET
+    else let () = enter_array (); move_position lexbuf (~-1) in LBRACKET
+  }
+| ']' ']'
+  {
+    if in_top_level () then LDBRACKET else
+    if not (in_array ()) then lexing_error lexbuf "stray closing square bracket (])"
+    else let () = exit_context (); move_position lexbuf (~-1) in RBRACKET  
+  }
+| '['
+  {
+    let () = if not (in_top_level ()) then enter_array () in
+    LBRACKET
+  }
+| ']'
+  {
+    let () = if in_array () then exit_context () in
+    RBRACKET
+  }
 | '.' { DOT }
-| ',' { COMMA }
+| ','
+  {
+    let () = if in_inline_table_value () then exit_context () in
+    COMMA
+  }
 (* Primitive values *)
 | t_time as t
   {
@@ -259,13 +393,37 @@ rule token = parse
 | t_integer as s
   (* int_of_string correctly handles all possible TOML integers,
      including underscores and leading + *)
-  { INTEGER(int_of_string s) }
+  {
+    if not ((in_top_level ()) || (in_inline_table ())) then INTEGER(int_of_string s)
+    else if Option.is_some integer_sign then lexing_error lexbuf @@ Printf.sprintf "\"%s\" is not a valid key" s
+    else KEY(s)
+  }
 | t_float as s
   (* float_of_string also covers all notations valid in TOML *)
-  { FLOAT(float_of_string s) }
+  {
+    let normalize_nan f =
+      (* TOML spec makes no difference between positive and negative NaN,
+         but OCaml does, so we strip the sign from NaNs.
+       *)
+      if Float.is_nan f then Float.copy_sign f 0.0
+      else f
+    in
+    if not ((in_top_level ()) || (in_inline_table ())) then FLOAT(float_of_string s |> normalize_nan) else
+    (* If we are in the top level context, it's a key that looks like a float. *)
+    if Option.is_some float_sign then lexing_error lexbuf @@ Printf.sprintf "\"%s\" is not a valid key" s
+    else
+    match float_value with
+    | "nan" | "inf" -> KEY(float_value)
+    | _ ->
+      if Option.is_none @@ String.index_opt float_value '.' then KEY(float_value)
+      else failwith "unimplemented"
+  }
 | ("true" | "false") as s
   (* Boolean literals must always be lowercase in TOML. *)
-  { BOOLEAN(bool_of_string s) }
+  {
+    if (in_top_level ()) || (in_inline_table ()) then KEY(s)
+    else BOOLEAN(bool_of_string s)
+  }
 (* Bare keys. CAUTION: this _must_ come after primitive values
    because integers and booleans match the same regex! *)
 | ['A'-'Z''a'-'z''0'-'9''_''-']+ as s { KEY(s) }
@@ -287,7 +445,11 @@ rule token = parse
     { read_double_quoted_string (Buffer.create 512) lexbuf }
 | '#'
     { read_comment (Buffer.create 512) lexbuf; Lexing.new_line lexbuf; token lexbuf }
-| eof { EOF }
+| eof
+  {
+    let () = context_stack := [] in
+    EOF
+  }
 | _ as bad_char
   { lexing_error lexbuf (Printf.sprintf "unexpected character \'%s\'" (Char.escaped bad_char)) }
 
