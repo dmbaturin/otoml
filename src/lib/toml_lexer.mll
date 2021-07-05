@@ -218,6 +218,8 @@ let t_unicode =
   (t_hex_digit t_hex_digit t_hex_digit t_hex_digit
    t_hex_digit t_hex_digit t_hex_digit t_hex_digit)
 
+let t_invalid_escape = '\\' ([^ ' ' '\t' '\r' '\n' 'b' 'n' 'f' 'r' 't' '\\'] as invalid_escape_char)
+
 rule token = parse
 (* Whitespace *)
 | ('\n' | '\r' '\n') { Lexing.new_line lexbuf; NEWLINE }
@@ -314,6 +316,11 @@ and read_double_quoted_string buf =
   | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_string buf lexbuf }
   | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_string buf lexbuf }
   | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_string buf lexbuf }
+  | t_invalid_escape
+    {
+      let msg = Printf.sprintf "\\%s is not a valid escape sequence" (Char.escaped invalid_escape_char) in
+      lexing_error lexbuf msg
+    }
   | '\n'      { lexing_error lexbuf "line breaks are not allowed inside strings" }
   | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F'] as bad_char
     { lexing_error lexbuf @@
@@ -369,6 +376,11 @@ and read_double_quoted_multiline_string buf =
   | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_multiline_string buf lexbuf }
   | '\n'      { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_double_quoted_multiline_string buf lexbuf }
   | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_multiline_string buf lexbuf }
+  | t_invalid_escape
+    {
+      let msg = Printf.sprintf "\\%s is not a valid escape sequence" (Char.escaped invalid_escape_char) in
+      lexing_error lexbuf msg
+    }
   | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F'] as bad_char
     {
        lexing_error lexbuf @@
