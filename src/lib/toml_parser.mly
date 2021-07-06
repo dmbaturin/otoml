@@ -66,8 +66,8 @@ value:
    That's why the built-in separated_list() won't do -- we need a custom macro.
  *)
 let item_sequence(Sep, X) :=
-(*  | (* empty *)
-    { [] } *)
+  | 
+    { [] }
   | x = X; 
     { [x] }
   | x = X; Sep; xs = item_sequence(Sep, X);
@@ -107,7 +107,7 @@ table_entry:
     { TableArrayHeader ks }
 
 let items_on_lines(X) :=
-  | { [] }
+  | (* Empty *) { [] }
   | x = X; 
     { [x] }
   | x = X; NEWLINE+; xs = items_on_lines(X);
