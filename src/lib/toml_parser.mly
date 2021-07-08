@@ -5,12 +5,14 @@ open Parser_utils
 %}
 
 %token EQ
-%token LBRACE
-%token RBRACE
-%token LBRACKET
-%token RBRACKET
-%token LDBRACKET
-%token RDBRACKET
+%token LEFT_BRACE
+%token RIGHT_BRACE
+%token ARRAY_START
+%token ARRAY_END
+%token TABLE_HEADER_START
+%token TABLE_HEADER_END
+%token TABLE_ARRAY_HEADER_START
+%token TABLE_ARRAY_HEADER_END
 %token COMMA
 %token DOT
 %token NEWLINE
@@ -74,8 +76,8 @@ let item_sequence(Sep, X) :=
     { x :: xs }
 
 array:
-  | LBRACKET; RBRACKET { [] }
-  | LBRACKET; vs = item_sequence(COMMA, value); RBRACKET { vs }
+  | ARRAY_START; ARRAY_END { [] }
+  | ARRAY_START; vs = item_sequence(COMMA, value); ARRAY_END { vs }
 
 key_value_pair:
   | k = key; EQ; v = value; { (k, v) } 
@@ -85,7 +87,7 @@ key_value_pair:
    That's why we use an ordinary separated_list() here.
  *)
 inline_table:
-  | LBRACE; kvs = separated_list(COMMA, key_value_pair); RBRACE { kvs }
+  | LEFT_BRACE; kvs = separated_list(COMMA, key_value_pair); RIGHT_BRACE { kvs }
 
 (* Non-inline table handling *)
 
@@ -93,10 +95,10 @@ table_path:
   | ks = separated_nonempty_list(DOT, key) { ks }
 
 table_header:
-  | LBRACKET; ks = table_path; RBRACKET { ks }
+  | TABLE_HEADER_START; ks = table_path; TABLE_HEADER_END { ks }
 
 table_array_header:
-  | LDBRACKET; ks = table_path; RDBRACKET { ks }
+  | TABLE_ARRAY_HEADER_START; ks = table_path; TABLE_ARRAY_HEADER_END { ks }
 
 table_entry:
   | kv = key_value_pair; 

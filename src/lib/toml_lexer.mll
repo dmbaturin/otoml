@@ -155,12 +155,10 @@ let move_position lexbuf n =
 
    That is why we introduce a context stack.
 
-   Parsing starts in the "top level" 
+   Parsing starts in the virtual "top level" context signified by an empty stack.
  *)
 
 type context = ConValue | ConInlineTable | ConInlineTableValue | ConArray
-
-
 let context_stack : (context list) ref = ref []
 
 let in_top_level () =
@@ -330,7 +328,7 @@ rule token = parse
 | '{'
   {
     let () = enter_inline_table () in
-    LBRACE
+    LEFT_BRACE
   }
 | '}'
   {
@@ -340,28 +338,42 @@ rule token = parse
       if in_inline_table_value () then (exit_context (); exit_context())
       else exit_context ()
     in
-    RBRACE
+    RIGHT_BRACE
   }
 | '[' '['
   {
-    if in_top_level () then LDBRACKET
-    else let () = enter_array (); move_position lexbuf (~-1) in LBRACKET
+    (* The TOML spec doesn't say it explicitly
+       whether whitespace between brackets in table array headers is allowed
+       (i.e. whether `[ [t_array] ]` is valid syntax),
+       but the prevalent behaviour of popular libs and the testsuite samples suggest that
+       the de facto agreement is to treat `[[` and `]]` as a single token.
+
+       The fun part, however, is that it's context-sensitive.
+       In the top level context `[[` marks the start of a header of an array of tables,
+       while in `foo = [[` it's a start of a nested array.
+
+       Thus we need to make sure to correctly emit two left square bracket tokens
+       when we see `[[` character sequence in a value context.
+     *)
+    if in_top_level () then TABLE_ARRAY_HEADER_START
+    else let () = enter_array (); move_position lexbuf (~-1) in ARRAY_START
   }
 | ']' ']'
   {
-    if in_top_level () then LDBRACKET else
+    if in_top_level () then TABLE_ARRAY_HEADER_END else
     if not (in_array ()) then lexing_error lexbuf "stray closing square bracket (])"
-    else let () = exit_context (); move_position lexbuf (~-1) in RBRACKET  
+    else let () = exit_context (); move_position lexbuf (~-1) in ARRAY_END
   }
 | '['
   {
-    let () = if not (in_top_level ()) then enter_array () in
-    LBRACKET
+    if in_top_level () then TABLE_HEADER_START
+    else let () = enter_array () in ARRAY_START
   }
 | ']'
   {
+    if in_top_level () then TABLE_HEADER_END else
     let () = if in_array () then exit_context () in
-    RBRACKET
+    ARRAY_END
   }
 | '.' { DOT }
 | ','
@@ -444,7 +456,9 @@ rule token = parse
 | '"'
     { read_double_quoted_string (Buffer.create 512) lexbuf }
 | '#'
-    { read_comment (Buffer.create 512) lexbuf; Lexing.new_line lexbuf; token lexbuf }
+  {
+    read_comment (Buffer.create 512) lexbuf;
+  }
 | eof
   {
     let () = context_stack := [] in
@@ -461,7 +475,23 @@ and read_comment buf =
         Printf.sprintf "character '%s' is not allowed inside a comment"
         (Char.escaped bad_char)
       }
-  | ('\n' | '\r' '\n') { validate_unicode lexbuf @@ Buffer.contents buf }
+  | ('\n' | '\r' '\n')
+    {
+      (* This is for cases like `[foo.bar] # my table` or `foo = bar # my value`.
+
+         Since in most contexts (except for the array context) newlines are significant,
+         we cannot ignore a comment together with the newline that ends it.
+         Instead we need to treat the trailing newline as a character of its own.
+         Which is why we look for it to see if the comment has ended,
+         but then move the lexing position back to allow that newline to be lexed
+         as it should be in the parent context.
+       *)
+      let () = 
+        validate_unicode lexbuf @@ Buffer.contents buf;
+        move_position lexbuf (~-1)
+      in
+      token lexbuf
+    }
   | [^ '\n' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F']+
     { Buffer.add_string buf (Lexing.lexeme lexbuf); read_comment buf lexbuf }
 

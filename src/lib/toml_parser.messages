@@ -1,95 +1,8 @@
-toml: LBRACKET RDBRACKET
-##
-## Ends in an error in state: 14.
-##
-## table_header -> LBRACKET . table_path RBRACKET [ NEWLINE EOF ]
-##
-## The known suffix of the stack is as follows:
-## LBRACKET
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: LBRACKET STRING RDBRACKET
-##
-## Ends in an error in state: 15.
-##
-## table_header -> LBRACKET table_path . RBRACKET [ NEWLINE EOF ]
-##
-## The known suffix of the stack is as follows:
-## LBRACKET table_path
-##
-## WARNING: This example involves spurious reductions.
-## This implies that, although the LR(1) items shown above provide an
-## accurate view of the past (what has been recognized so far), they
-## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 11, spurious reduction of production separated_nonempty_list(DOT,key) -> key
-## In state 10, spurious reduction of production table_path -> separated_nonempty_list(DOT,key)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: LDBRACKET RDBRACKET
-##
-## Ends in an error in state: 6.
-##
-## table_array_header -> LDBRACKET . table_path RDBRACKET [ NEWLINE EOF ]
-##
-## The known suffix of the stack is as follows:
-## LDBRACKET
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: LDBRACKET STRING DOT RDBRACKET
-##
-## Ends in an error in state: 12.
-##
-## separated_nonempty_list(DOT,key) -> key DOT . separated_nonempty_list(DOT,key) [ RDBRACKET RBRACKET ]
-##
-## The known suffix of the stack is as follows:
-## key DOT
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: LDBRACKET STRING RBRACKET
-##
-## Ends in an error in state: 8.
-##
-## table_array_header -> LDBRACKET table_path . RDBRACKET [ NEWLINE EOF ]
-##
-## The known suffix of the stack is as follows:
-## LDBRACKET table_path
-##
-## WARNING: This example involves spurious reductions.
-## This implies that, although the LR(1) items shown above provide an
-## accurate view of the past (what has been recognized so far), they
-## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 11, spurious reduction of production separated_nonempty_list(DOT,key) -> key
-## In state 10, spurious reduction of production table_path -> separated_nonempty_list(DOT,key)
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: LDBRACKET STRING STRING
-##
-## Ends in an error in state: 11.
-##
-## separated_nonempty_list(DOT,key) -> key . [ RDBRACKET RBRACKET ]
-## separated_nonempty_list(DOT,key) -> key . DOT separated_nonempty_list(DOT,key) [ RDBRACKET RBRACKET ]
-##
-## The known suffix of the stack is as follows:
-## key
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: NEWLINE RDBRACKET
+toml: NEWLINE TABLE_HEADER_END
 ##
 ## Ends in an error in state: 1.
 ##
-## list(NEWLINE) -> NEWLINE . list(NEWLINE) [ STRING LDBRACKET LBRACKET KEY EOF ]
+## list(NEWLINE) -> NEWLINE . list(NEWLINE) [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START STRING KEY EOF ]
 ##
 ## The known suffix of the stack is as follows:
 ## NEWLINE
@@ -97,7 +10,137 @@ toml: NEWLINE RDBRACKET
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: RDBRACKET
+toml: STRING EQ ARRAY_START STRING COMMA TABLE_HEADER_START
+##
+## Ends in an error in state: 45.
+##
+## item_sequence(COMMA,value) -> value COMMA . item_sequence(COMMA,value) [ ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## value COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ ARRAY_START STRING TABLE_HEADER_START
+##
+## Ends in an error in state: 44.
+##
+## item_sequence(COMMA,value) -> value . [ ARRAY_END ]
+## item_sequence(COMMA,value) -> value . COMMA item_sequence(COMMA,value) [ ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## value
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ ARRAY_START TABLE_HEADER_START
+##
+## Ends in an error in state: 42.
+##
+## array -> ARRAY_START . ARRAY_END [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
+## array -> ARRAY_START . item_sequence(COMMA,value) ARRAY_END [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## ARRAY_START
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LEFT_BRACE STRING EQ BOOLEAN COMMA TABLE_HEADER_START
+##
+## Ends in an error in state: 37.
+##
+## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair COMMA . separated_nonempty_list(COMMA,key_value_pair) [ RIGHT_BRACE ]
+##
+## The known suffix of the stack is as follows:
+## key_value_pair COMMA
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LEFT_BRACE STRING EQ BOOLEAN TABLE_HEADER_START
+##
+## Ends in an error in state: 36.
+##
+## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . [ RIGHT_BRACE ]
+## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . COMMA separated_nonempty_list(COMMA,key_value_pair) [ RIGHT_BRACE ]
+##
+## The known suffix of the stack is as follows:
+## key_value_pair
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ LEFT_BRACE TABLE_HEADER_START
+##
+## Ends in an error in state: 32.
+##
+## inline_table -> LEFT_BRACE . loption(separated_nonempty_list(COMMA,key_value_pair)) RIGHT_BRACE [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## LEFT_BRACE
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING EQ TABLE_HEADER_START
+##
+## Ends in an error in state: 25.
+##
+## key_value_pair -> key EQ . value [ RIGHT_BRACE NEWLINE EOF COMMA ]
+##
+## The known suffix of the stack is as follows:
+## key EQ
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: STRING TABLE_HEADER_START
+##
+## Ends in an error in state: 24.
+##
+## key_value_pair -> key . EQ value [ RIGHT_BRACE NEWLINE EOF COMMA ]
+##
+## The known suffix of the stack is as follows:
+## key
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: TABLE_ARRAY_HEADER_START STRING TABLE_HEADER_END
+##
+## Ends in an error in state: 15.
+##
+## table_array_header -> TABLE_ARRAY_HEADER_START table_path . TABLE_ARRAY_HEADER_END [ NEWLINE EOF ]
+##
+## The known suffix of the stack is as follows:
+## TABLE_ARRAY_HEADER_START table_path
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 11, spurious reduction of production separated_nonempty_list(DOT,key) -> key
+## In state 10, spurious reduction of production table_path -> separated_nonempty_list(DOT,key)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: TABLE_ARRAY_HEADER_START TABLE_HEADER_START
+##
+## Ends in an error in state: 14.
+##
+## table_array_header -> TABLE_ARRAY_HEADER_START . table_path TABLE_ARRAY_HEADER_END [ NEWLINE EOF ]
+##
+## The known suffix of the stack is as follows:
+## TABLE_ARRAY_HEADER_START
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: TABLE_HEADER_END
 ##
 ## Ends in an error in state: 0.
 ##
@@ -109,12 +152,43 @@ toml: RDBRACKET
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: STRING EQ BOOLEAN NEWLINE RDBRACKET
+toml: TABLE_HEADER_START STRING DOT TABLE_HEADER_START
+##
+## Ends in an error in state: 12.
+##
+## separated_nonempty_list(DOT,key) -> key DOT . separated_nonempty_list(DOT,key) [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END ]
+##
+## The known suffix of the stack is as follows:
+## key DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: TABLE_HEADER_START STRING TABLE_ARRAY_HEADER_END
+##
+## Ends in an error in state: 8.
+##
+## table_header -> TABLE_HEADER_START table_path . TABLE_HEADER_END [ NEWLINE EOF ]
+##
+## The known suffix of the stack is as follows:
+## TABLE_HEADER_START table_path
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 11, spurious reduction of production separated_nonempty_list(DOT,key) -> key
+## In state 10, spurious reduction of production table_path -> separated_nonempty_list(DOT,key)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: TABLE_HEADER_START STRING TABLE_HEADER_END NEWLINE TABLE_HEADER_END
 ##
 ## Ends in an error in state: 19.
 ##
-## nonempty_list(NEWLINE) -> NEWLINE . [ STRING LDBRACKET LBRACKET KEY EOF ]
-## nonempty_list(NEWLINE) -> NEWLINE . nonempty_list(NEWLINE) [ STRING LDBRACKET LBRACKET KEY EOF ]
+## nonempty_list(NEWLINE) -> NEWLINE . [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START STRING KEY EOF ]
+## nonempty_list(NEWLINE) -> NEWLINE . nonempty_list(NEWLINE) [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START STRING KEY EOF ]
 ##
 ## The known suffix of the stack is as follows:
 ## NEWLINE
@@ -122,7 +196,7 @@ toml: STRING EQ BOOLEAN NEWLINE RDBRACKET
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: STRING EQ BOOLEAN STRING
+toml: TABLE_HEADER_START STRING TABLE_HEADER_END TABLE_HEADER_START
 ##
 ## Ends in an error in state: 18.
 ##
@@ -135,101 +209,27 @@ toml: STRING EQ BOOLEAN STRING
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: STRING EQ LBRACE RDBRACKET
+toml: TABLE_HEADER_START STRING TABLE_HEADER_START
 ##
-## Ends in an error in state: 34.
+## Ends in an error in state: 11.
 ##
-## inline_table -> LBRACE . loption(separated_nonempty_list(COMMA,key_value_pair)) RBRACE [ RBRACKET RBRACE NEWLINE EOF COMMA ]
-##
-## The known suffix of the stack is as follows:
-## LBRACE
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: STRING EQ LBRACE STRING EQ BOOLEAN COMMA RDBRACKET
-##
-## Ends in an error in state: 39.
-##
-## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair COMMA . separated_nonempty_list(COMMA,key_value_pair) [ RBRACE ]
-##
-## The known suffix of the stack is as follows:
-## key_value_pair COMMA
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: STRING EQ LBRACE STRING EQ BOOLEAN STRING
-##
-## Ends in an error in state: 38.
-##
-## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . [ RBRACE ]
-## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . COMMA separated_nonempty_list(COMMA,key_value_pair) [ RBRACE ]
-##
-## The known suffix of the stack is as follows:
-## key_value_pair
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: STRING EQ LBRACKET RDBRACKET
-##
-## Ends in an error in state: 32.
-##
-## array -> LBRACKET . RBRACKET [ RBRACKET RBRACE NEWLINE EOF COMMA ]
-## array -> LBRACKET . item_sequence(COMMA,value) RBRACKET [ RBRACKET RBRACE NEWLINE EOF COMMA ]
-##
-## The known suffix of the stack is as follows:
-## LBRACKET
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: STRING EQ LBRACKET STRING COMMA RDBRACKET
-##
-## Ends in an error in state: 45.
-##
-## item_sequence(COMMA,value) -> value COMMA . item_sequence(COMMA,value) [ RBRACKET ]
-##
-## The known suffix of the stack is as follows:
-## value COMMA
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: STRING EQ LBRACKET STRING STRING
-##
-## Ends in an error in state: 44.
-##
-## item_sequence(COMMA,value) -> value . [ RBRACKET ]
-## item_sequence(COMMA,value) -> value . COMMA item_sequence(COMMA,value) [ RBRACKET ]
-##
-## The known suffix of the stack is as follows:
-## value
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: STRING EQ RDBRACKET
-##
-## Ends in an error in state: 25.
-##
-## key_value_pair -> key EQ . value [ RBRACE NEWLINE EOF COMMA ]
-##
-## The known suffix of the stack is as follows:
-## key EQ
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: STRING STRING
-##
-## Ends in an error in state: 24.
-##
-## key_value_pair -> key . EQ value [ RBRACE NEWLINE EOF COMMA ]
+## separated_nonempty_list(DOT,key) -> key . [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END ]
+## separated_nonempty_list(DOT,key) -> key . DOT separated_nonempty_list(DOT,key) [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END ]
 ##
 ## The known suffix of the stack is as follows:
 ## key
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml: TABLE_HEADER_START TABLE_HEADER_START
+##
+## Ends in an error in state: 5.
+##
+## table_header -> TABLE_HEADER_START . table_path TABLE_HEADER_END [ NEWLINE EOF ]
+##
+## The known suffix of the stack is as follows:
+## TABLE_HEADER_START
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
