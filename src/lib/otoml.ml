@@ -230,7 +230,7 @@ module Parser = struct
     | [] -> failwith "Cannot update a TOML value at an empty path"
     | [p] -> begin
       match value with
-      | TomlTable kvs ->
+      | (TomlTable kvs | TomlInlineTable kvs) ->
         (* XXX: Adding to the end makes the operation quadratic,
            but I believe preserving the original order is a worthwhile
            even if the spec does not require it.
@@ -315,13 +315,30 @@ module Parser = struct
     | Some p ->
       Printf.ksprintf (parse_error None) "table [%s] is defined more than once" (Utils.string_of_path p)
 
-  let rec from_statements ?(path=[]) toml ss =
+  let to_pairs ns = List.map (fun (k, v) -> Pair (k, v)) ns
+
+  let rec value_of_node n =
+    match n with
+    | NodeInteger n -> TomlInteger (int_of_string n)
+    | NodeFloat x -> TomlFloat (float_of_string x)
+    | NodeString s -> TomlString s
+    | NodeBoolean b -> TomlBoolean (bool_of_string b)
+    | NodeOffsetDateTime dt -> TomlOffsetDateTime dt
+    | NodeLocalDateTime dt -> TomlLocalDateTime dt
+    | NodeLocalDate d -> TomlLocalDate d
+    | NodeLocalTime t -> TomlLocalTime t
+    | NodeArray ns -> TomlArray (List.map value_of_node ns)
+    | NodeInlineTable ns ->
+      let ns = to_pairs ns in
+      from_statements ~path:[] (TomlInlineTable []) ns
+    | _ -> failwith "otoml internal error: table header or a non-inline table inside a value. Please report a bug."
+  and from_statements ?(path=[]) toml ss =
     match ss with
     | [] -> toml
     | s :: ss' -> begin
       match s with
       | Pair (k, v) ->
-        let toml = insert toml (path @ [k]) v in begin
+        let toml = insert toml (path @ k) (value_of_node v) in begin
           try from_statements ~path:path toml ss'
           with Duplicate_key err ->
             (* A distinct exception is used here to allow it to propagate up
@@ -336,26 +353,29 @@ module Parser = struct
         from_statements ~path:ks toml ss'
       | TableArrayHeader ks ->
         let tbl, ss' = read_table [] ss' in
+        let tbl = from_statements (TomlTable []) (to_pairs tbl) in
         let existing_value = find_opt get_value toml ks in
         begin match existing_value with
         | Some (TomlTableArray ts) ->
           (* Array of tables already exists, we need to append a new table to it. *)
-          let toml = update toml ks (Some (TomlTableArray (ts @ [TomlTable tbl]))) in
+          let toml = update toml ks (Some (TomlTableArray (ts @ [tbl]))) in
           from_statements ~path:path toml ss'
         | None ->
           (* It didn't exist before, we need to create it now. *)
-          let toml = insert toml ks (TomlTableArray [TomlTable tbl]) in
+          let toml = insert toml ks (TomlTableArray [tbl]) in
           from_statements ~path:path toml ss'
         | Some (_ as v) ->
           (* Some other value already exists at that path, so it's not a valid TOML. *)
           parse_error None @@ Printf.sprintf "cannot create a table array [[%s]], it would override a previously defined value of type %s"
             (Utils.string_of_path ks) (type_string v)
         end
-    end
+        | _ ->
+          failwith "otoml internal error: bare value as a top level statement. Please report a bug."
+      end
 
   let parse lexbuf =
     try
-      let toml_statements = _parse lexbuf (Toml_parser.Incremental.toml lexbuf.lex_curr_p) in
+      let toml_statements = _parse lexbuf (Toml_parser.Incremental.toml_ast lexbuf.lex_curr_p) in
       let () = check_duplicate_tables toml_statements in
       let toml = from_statements (TomlTable []) toml_statements in
       Ok toml

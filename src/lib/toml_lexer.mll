@@ -403,24 +403,14 @@ rule token = parse
     else lexing_error lexbuf @@ Printf.sprintf "%s is not a valid datetime" dt
   }
 | t_integer as s
-  (* int_of_string correctly handles all possible TOML integers,
-     including underscores and leading + *)
   {
-    if not ((in_top_level ()) || (in_inline_table ())) then INTEGER(int_of_string s)
+    if not ((in_top_level ()) || (in_inline_table ())) then INTEGER s
     else if Option.is_some integer_sign then lexing_error lexbuf @@ Printf.sprintf "\"%s\" is not a valid key" s
     else KEY(s)
   }
 | t_float as s
-  (* float_of_string also covers all notations valid in TOML *)
   {
-    let normalize_nan f =
-      (* TOML spec makes no difference between positive and negative NaN,
-         but OCaml does, so we strip the sign from NaNs.
-       *)
-      if Float.is_nan f then Float.copy_sign f 0.0
-      else f
-    in
-    if not ((in_top_level ()) || (in_inline_table ())) then FLOAT(float_of_string s |> normalize_nan) else
+    if not ((in_top_level ()) || (in_inline_table ())) then FLOAT s else
     (* If we are in the top level context, it's a key that looks like a float. *)
     if Option.is_some float_sign then lexing_error lexbuf @@ Printf.sprintf "\"%s\" is not a valid key" s
     else
@@ -434,7 +424,7 @@ rule token = parse
   (* Boolean literals must always be lowercase in TOML. *)
   {
     if (in_top_level ()) || (in_inline_table ()) then KEY(s)
-    else BOOLEAN(bool_of_string s)
+    else BOOLEAN(s)
   }
 (* Bare keys. CAUTION: this _must_ come after primitive values
    because integers and booleans match the same regex! *)

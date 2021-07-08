@@ -1,5 +1,4 @@
 %{
-open Types
 open Parser_utils
 
 %}
@@ -18,9 +17,9 @@ open Parser_utils
 %token NEWLINE
 
 (* Primitive values *)
-%token <bool> BOOLEAN
-%token <int> INTEGER
-%token <float> FLOAT
+%token <string> BOOLEAN
+%token <string> INTEGER
+%token <string> FLOAT
 %token <string> STRING
 %token <string> MULTILINE_STRING
 %token <string> LOCAL_TIME
@@ -31,36 +30,35 @@ open Parser_utils
 
 %token EOF
 
-%start <statement list> toml
+%start <node list> toml_ast
 %%
 
 key:
-  | s = KEY
-    { s }
+  | s = KEY { s }
 
 value:
   | b = BOOLEAN
-    { TomlBoolean b }
+    { NodeBoolean b }
   | i = INTEGER
-    { TomlInteger i }
+    { NodeInteger i }
   | f = FLOAT
-    { TomlFloat f }
+    { NodeFloat f }
   | s = STRING
-    { TomlString s }
+    { NodeString s }
   | s = MULTILINE_STRING
-    { TomlString s }
+    { NodeString s }
   | t = LOCAL_TIME
-    { TomlLocalTime t }
+    { NodeLocalTime t }
   | d = LOCAL_DATE
-    { TomlLocalDate d }
+    { NodeLocalDate d }
   | dt = LOCAL_DATETIME
-    { TomlLocalDateTime dt }
+    { NodeLocalDateTime dt }
   | dt = OFFSET_DATETIME
-    { TomlOffsetDateTime dt }
+    { NodeOffsetDateTime dt }
   | a = array
-    { TomlArray a }
+    { NodeArray a }
   | i = inline_table
-    { TomlInlineTable i }
+    { NodeInlineTable i }
 
 (* Arrays allow trailing separators and newlines anywhere inside the square brackets.
    That's why the built-in separated_list() won't do -- we need a custom macro.
@@ -77,8 +75,11 @@ array:
   | ARRAY_START; ARRAY_END { [] }
   | ARRAY_START; vs = item_sequence(COMMA, value); ARRAY_END { vs }
 
+table_path:
+  | ks = separated_nonempty_list(DOT, key) { ks }
+
 key_value_pair:
-  | k = key; EQ; v = value; { (k, v) } 
+  | k = table_path; EQ; v = value; { (k, v) } 
 
 (* Unlike arrays, inline tables do not allow trailing commas and newlines inside
    (for whatever reason, I hope TOML standard maintainers eventually reconsider it).
@@ -88,9 +89,6 @@ inline_table:
   | LEFT_BRACE; kvs = separated_list(COMMA, key_value_pair); RIGHT_BRACE { kvs }
 
 (* Non-inline table handling *)
-
-table_path:
-  | ks = separated_nonempty_list(DOT, key) { ks }
 
 table_header:
   | TABLE_HEADER_START; ks = table_path; TABLE_HEADER_END { ks }
@@ -116,5 +114,5 @@ let items_on_lines(X) :=
 table:
   es = items_on_lines(table_entry); { es }
 
-toml: 
+toml_ast: 
   | NEWLINE*; t = table; EOF { t }

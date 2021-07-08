@@ -1,7 +1,17 @@
-open Types
-
-type statement =
-  | Pair of string * t
+type node =
+  | NodeString of string
+  | NodeInteger of string
+  | NodeFloat of string
+  | NodeBoolean of string
+  | NodeOffsetDateTime of string
+  | NodeLocalDateTime of string
+  | NodeLocalDate of string
+  | NodeLocalTime of string
+  | NodeArray of node list
+  | NodeTable of (string list * node) list
+  | NodeInlineTable of (string list * node) list
+  | NodeTableArray of node list
+  | Pair of (string list) * node
   | TableHeader of string list
   | TableArrayHeader of string list
 

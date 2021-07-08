@@ -1,6 +1,18 @@
-toml: KEY EQ ARRAY_START STRING COMMA TABLE_HEADER_START
+toml_ast: KEY DOT TABLE_HEADER_START
 ##
-## Ends in an error in state: 44.
+## Ends in an error in state: 11.
+##
+## separated_nonempty_list(DOT,key) -> key DOT . separated_nonempty_list(DOT,key) [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END EQ ]
+##
+## The known suffix of the stack is as follows:
+## key DOT
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml_ast: KEY EQ ARRAY_START STRING COMMA TABLE_HEADER_START
+##
+## Ends in an error in state: 37.
 ##
 ## item_sequence(COMMA,value) -> value COMMA . item_sequence(COMMA,value) [ ARRAY_END ]
 ##
@@ -10,9 +22,9 @@ toml: KEY EQ ARRAY_START STRING COMMA TABLE_HEADER_START
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: KEY EQ ARRAY_START STRING TABLE_HEADER_START
+toml_ast: KEY EQ ARRAY_START STRING TABLE_HEADER_START
 ##
-## Ends in an error in state: 43.
+## Ends in an error in state: 36.
 ##
 ## item_sequence(COMMA,value) -> value . [ ARRAY_END ]
 ## item_sequence(COMMA,value) -> value . COMMA item_sequence(COMMA,value) [ ARRAY_END ]
@@ -23,9 +35,9 @@ toml: KEY EQ ARRAY_START STRING TABLE_HEADER_START
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: KEY EQ ARRAY_START TABLE_HEADER_START
+toml_ast: KEY EQ ARRAY_START TABLE_HEADER_START
 ##
-## Ends in an error in state: 41.
+## Ends in an error in state: 34.
 ##
 ## array -> ARRAY_START . ARRAY_END [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
 ## array -> ARRAY_START . item_sequence(COMMA,value) ARRAY_END [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
@@ -36,9 +48,9 @@ toml: KEY EQ ARRAY_START TABLE_HEADER_START
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: KEY EQ LEFT_BRACE KEY EQ BOOLEAN COMMA TABLE_HEADER_START
+toml_ast: KEY EQ LEFT_BRACE KEY EQ BOOLEAN COMMA TABLE_HEADER_START
 ##
-## Ends in an error in state: 36.
+## Ends in an error in state: 29.
 ##
 ## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair COMMA . separated_nonempty_list(COMMA,key_value_pair) [ RIGHT_BRACE ]
 ##
@@ -48,9 +60,9 @@ toml: KEY EQ LEFT_BRACE KEY EQ BOOLEAN COMMA TABLE_HEADER_START
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: KEY EQ LEFT_BRACE KEY EQ BOOLEAN TABLE_HEADER_START
+toml_ast: KEY EQ LEFT_BRACE KEY EQ BOOLEAN TABLE_HEADER_START
 ##
-## Ends in an error in state: 35.
+## Ends in an error in state: 28.
 ##
 ## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . [ RIGHT_BRACE ]
 ## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . COMMA separated_nonempty_list(COMMA,key_value_pair) [ RIGHT_BRACE ]
@@ -61,9 +73,9 @@ toml: KEY EQ LEFT_BRACE KEY EQ BOOLEAN TABLE_HEADER_START
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: KEY EQ LEFT_BRACE TABLE_HEADER_START
+toml_ast: KEY EQ LEFT_BRACE TABLE_HEADER_START
 ##
-## Ends in an error in state: 31.
+## Ends in an error in state: 24.
 ##
 ## inline_table -> LEFT_BRACE . loption(separated_nonempty_list(COMMA,key_value_pair)) RIGHT_BRACE [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
 ##
@@ -73,23 +85,43 @@ toml: KEY EQ LEFT_BRACE TABLE_HEADER_START
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: KEY EQ TABLE_HEADER_START
+toml_ast: KEY EQ TABLE_HEADER_START
 ##
-## Ends in an error in state: 24.
+## Ends in an error in state: 17.
 ##
-## key_value_pair -> key EQ . value [ RIGHT_BRACE NEWLINE EOF COMMA ]
+## key_value_pair -> table_path EQ . value [ RIGHT_BRACE NEWLINE EOF COMMA ]
 ##
 ## The known suffix of the stack is as follows:
-## key EQ
+## table_path EQ
 ##
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: KEY TABLE_HEADER_START
+toml_ast: KEY TABLE_HEADER_END
 ##
-## Ends in an error in state: 23.
+## Ends in an error in state: 16.
 ##
-## key_value_pair -> key . EQ value [ RIGHT_BRACE NEWLINE EOF COMMA ]
+## key_value_pair -> table_path . EQ value [ RIGHT_BRACE NEWLINE EOF COMMA ]
+##
+## The known suffix of the stack is as follows:
+## table_path
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 10, spurious reduction of production separated_nonempty_list(DOT,key) -> key
+## In state 9, spurious reduction of production table_path -> separated_nonempty_list(DOT,key)
+##
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+toml_ast: KEY TABLE_HEADER_START
+##
+## Ends in an error in state: 10.
+##
+## separated_nonempty_list(DOT,key) -> key . [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END EQ ]
+## separated_nonempty_list(DOT,key) -> key . DOT separated_nonempty_list(DOT,key) [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END EQ ]
 ##
 ## The known suffix of the stack is as follows:
 ## key
@@ -97,7 +129,7 @@ toml: KEY TABLE_HEADER_START
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: NEWLINE TABLE_HEADER_END
+toml_ast: NEWLINE TABLE_HEADER_END
 ##
 ## Ends in an error in state: 1.
 ##
@@ -109,7 +141,7 @@ toml: NEWLINE TABLE_HEADER_END
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: TABLE_ARRAY_HEADER_START KEY TABLE_HEADER_END
+toml_ast: TABLE_ARRAY_HEADER_START KEY TABLE_HEADER_END
 ##
 ## Ends in an error in state: 14.
 ##
@@ -128,7 +160,7 @@ toml: TABLE_ARRAY_HEADER_START KEY TABLE_HEADER_END
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: TABLE_ARRAY_HEADER_START TABLE_HEADER_START
+toml_ast: TABLE_ARRAY_HEADER_START TABLE_HEADER_START
 ##
 ## Ends in an error in state: 13.
 ##
@@ -140,11 +172,11 @@ toml: TABLE_ARRAY_HEADER_START TABLE_HEADER_START
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: TABLE_HEADER_END
+toml_ast: TABLE_HEADER_END
 ##
 ## Ends in an error in state: 0.
 ##
-## toml' -> . toml [ # ]
+## toml_ast' -> . toml_ast [ # ]
 ##
 ## The known suffix of the stack is as follows:
 ##
@@ -152,19 +184,7 @@ toml: TABLE_HEADER_END
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: TABLE_HEADER_START KEY DOT TABLE_HEADER_START
-##
-## Ends in an error in state: 11.
-##
-## separated_nonempty_list(DOT,key) -> key DOT . separated_nonempty_list(DOT,key) [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END ]
-##
-## The known suffix of the stack is as follows:
-## key DOT
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: TABLE_HEADER_START KEY TABLE_ARRAY_HEADER_END
+toml_ast: TABLE_HEADER_START KEY TABLE_ARRAY_HEADER_END
 ##
 ## Ends in an error in state: 7.
 ##
@@ -183,9 +203,9 @@ toml: TABLE_HEADER_START KEY TABLE_ARRAY_HEADER_END
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: TABLE_HEADER_START KEY TABLE_HEADER_END NEWLINE TABLE_HEADER_END
+toml_ast: TABLE_HEADER_START KEY TABLE_HEADER_END NEWLINE TABLE_HEADER_END
 ##
-## Ends in an error in state: 18.
+## Ends in an error in state: 46.
 ##
 ## nonempty_list(NEWLINE) -> NEWLINE . [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START KEY EOF ]
 ## nonempty_list(NEWLINE) -> NEWLINE . nonempty_list(NEWLINE) [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START KEY EOF ]
@@ -196,9 +216,9 @@ toml: TABLE_HEADER_START KEY TABLE_HEADER_END NEWLINE TABLE_HEADER_END
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: TABLE_HEADER_START KEY TABLE_HEADER_END TABLE_HEADER_START
+toml_ast: TABLE_HEADER_START KEY TABLE_HEADER_END TABLE_HEADER_START
 ##
-## Ends in an error in state: 17.
+## Ends in an error in state: 45.
 ##
 ## items_on_lines(table_entry) -> table_entry . [ EOF ]
 ## items_on_lines(table_entry) -> table_entry . nonempty_list(NEWLINE) items_on_lines(table_entry) [ EOF ]
@@ -209,20 +229,7 @@ toml: TABLE_HEADER_START KEY TABLE_HEADER_END TABLE_HEADER_START
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-toml: TABLE_HEADER_START KEY TABLE_HEADER_START
-##
-## Ends in an error in state: 10.
-##
-## separated_nonempty_list(DOT,key) -> key . [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END ]
-## separated_nonempty_list(DOT,key) -> key . DOT separated_nonempty_list(DOT,key) [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END ]
-##
-## The known suffix of the stack is as follows:
-## key
-##
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-toml: TABLE_HEADER_START TABLE_HEADER_START
+toml_ast: TABLE_HEADER_START TABLE_HEADER_START
 ##
 ## Ends in an error in state: 5.
 ##
