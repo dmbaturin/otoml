@@ -155,12 +155,10 @@ let move_position lexbuf n =
 
    That is why we introduce a context stack.
 
-   Parsing starts in the "top level" 
+   Parsing starts in the virtual "top level" context signified by an empty stack.
  *)
 
 type context = ConValue | ConInlineTable | ConInlineTableValue | ConArray
-
-
 let context_stack : (context list) ref = ref []
 
 let in_top_level () =
@@ -444,7 +442,9 @@ rule token = parse
 | '"'
     { read_double_quoted_string (Buffer.create 512) lexbuf }
 | '#'
-    { read_comment (Buffer.create 512) lexbuf; Lexing.new_line lexbuf; token lexbuf }
+  {
+    read_comment (Buffer.create 512) lexbuf;
+  }
 | eof
   {
     let () = context_stack := [] in
@@ -461,7 +461,23 @@ and read_comment buf =
         Printf.sprintf "character '%s' is not allowed inside a comment"
         (Char.escaped bad_char)
       }
-  | ('\n' | '\r' '\n') { validate_unicode lexbuf @@ Buffer.contents buf }
+  | ('\n' | '\r' '\n')
+    {
+      (* This is for cases like `[foo.bar] # my table` or `foo = bar # my value`.
+
+         Since in most contexts (except for the array context) newlines are significant,
+         we cannot ignore a comment together with the newline that ends it.
+         Instead we need to treat the trailing newline as a character of its own.
+         Which is why we look for it to see if the comment has ended,
+         but then move the lexing position back to allow that newline to be lexed
+         as it should be in the parent context.
+       *)
+      let () = 
+        validate_unicode lexbuf @@ Buffer.contents buf;
+        move_position lexbuf (~-1)
+      in
+      token lexbuf
+    }
   | [^ '\n' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F']+
     { Buffer.add_string buf (Lexing.lexeme lexbuf); read_comment buf lexbuf }
 
