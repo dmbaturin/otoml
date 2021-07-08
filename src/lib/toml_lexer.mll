@@ -497,7 +497,13 @@ and read_comment buf =
 
 and read_double_quoted_string buf =
   parse
-  | '"'       { validate_unicode lexbuf @@ Buffer.contents buf; STRING (Buffer.contents buf) }
+  | '"'
+    {
+      let str = Buffer.contents buf in
+      let () = validate_unicode lexbuf str in
+      if not (in_top_level ()) && not (in_inline_table ()) then STRING str
+      else KEY str
+    }
   | '\\' '\\' { Buffer.add_char buf '\\'; read_double_quoted_string buf lexbuf }
   | '\\' 'b'  { Buffer.add_char buf '\b'; read_double_quoted_string buf lexbuf }
   | '\\' 'f'  { Buffer.add_char buf '\012'; read_double_quoted_string buf lexbuf }
@@ -527,7 +533,13 @@ and read_double_quoted_string buf =
 
 and read_single_quoted_string buf =
   parse
-  | '''  { validate_unicode lexbuf @@ Buffer.contents buf; STRING (Buffer.contents buf) }
+  | '''
+    {
+      let str = Buffer.contents buf in
+      let () = validate_unicode lexbuf str in
+      if not (in_top_level ()) && not (in_inline_table ()) then STRING str
+      else KEY str
+    }
   | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_single_quoted_string buf lexbuf }
   | '\n' { lexing_error lexbuf "line breaks are not allowed inside strings" }
   | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F'] as bad_char

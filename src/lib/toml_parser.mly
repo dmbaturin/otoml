@@ -37,8 +37,6 @@ open Parser_utils
 key:
   | s = KEY
     { s }
-  | s = STRING
-    { s }
 
 value:
   | b = BOOLEAN
