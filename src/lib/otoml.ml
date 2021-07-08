@@ -239,6 +239,21 @@ module Parser = struct
         let orig_value = List.assoc_opt p kvs in begin
         match orig_value with
         | Some orig_value ->
+          (* As the spec says...
+             ```
+             # [x] you
+             # [x.y] don't
+             # [x.y.z] need these
+             [x.y.z.w] # for this to work
+
+             [x] # defining a super-table afterward is ok
+             ```
+
+             Empty supertable leads to exactly this case being matched,
+             so we need to handle that case explicitly
+             and only raise an error if the proposed value is not an empty table.
+           *)
+          if new_value = (TomlTable []) then value else
           Printf.ksprintf duplicate_key_error "duplicate key \"%s\" (overrides an original value of type %s with %s)"
             p (type_string orig_value) (type_string new_value)
         | None -> TomlTable (kvs @ [(p, new_value)])
