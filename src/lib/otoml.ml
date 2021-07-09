@@ -335,19 +335,29 @@ module Parser = struct
 
   let check_duplicates xs x = List.iter (check_duplicate x) xs
 
-  let rec is_child_path child parent =
+  (* Takes a child and a parent path and finds the part of the child path unique to the child.
+     E.g. `path_complement [1;2;3] [1]` is `[2;3]`.
+   *)
+  let rec path_complement child parent =
     match child, parent with
-    | [], [] -> false
+    | [], [] ->
+      (* They are the same path. *)
+      Some []
     | [], (_ :: _) ->
-      (* The alleged parent path is longer, so it can't actually be a parent. *)
-      false
-    | (_ :: _), [] ->
-      (* There's nothing left of the parent path after eliminating the common subset,
-         so it's definitely a parent. *)
-      true
+      (* The alleged parent path is longer, so it's not actually a parent path. *)
+      None
+    | (_ :: _) as ps, [] ->
+      (* The parent path is exhausted, so what's left is the part unique to the child. *)
+      Some ps
     | (x :: xs), (y :: ys) ->
-      if x = y then is_child_path xs ys
-      else false
+      if x = y then path_complement xs ys (* Still in the common part of the path. *)
+      else None (* Like Buster and Babs Bunny, no relation. *)
+
+  let is_child_path child parent =
+    let c = path_complement child parent in
+    match c with
+    | None | Some [] -> false
+    | _ -> true
 
   let to_pairs ns = List.map (fun (k, v) -> Pair (k, v)) ns
 
