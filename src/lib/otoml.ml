@@ -316,19 +316,38 @@ module Parser = struct
       if k = k' then compare_paths ks ks' else
       compare k k'
 
-  let rec find_duplicates ps =
-    match ps with
-    | [] | [_] -> None
-    | p :: p' :: ps ->
-      if p = p' then (Some p) else find_duplicates (p' :: ps)
+  let check_duplicate p' p = 
+    match p, p' with
+    | TableHeader p, TableHeader p' ->
+      if p = p' then Printf.ksprintf (parse_error None) "table [%s] is defined more than once"
+        (Utils.string_of_path p)
+    | TableHeader p, TableArrayHeader p' ->
+      if p = p' then
+        let path_str = (Utils.string_of_path p) in
+        Printf.ksprintf (parse_error None) "table [%s] is duplicated by an array of tables [[%s]]"
+          path_str path_str
+    | TableArrayHeader p, TableHeader p' ->
+      if p = p' then
+        let path_str = (Utils.string_of_path p) in
+        Printf.ksprintf (parse_error None) "array of tables [[%s]] is duplicated by a table [%s]"
+          path_str path_str
+    | _ -> ()
 
-  let check_duplicate_tables ps =
-    let table_headers = List.fold_left (fun acc s -> match s with TableHeader ps -> ps :: acc | _ -> acc) [] ps in
-    let duplicates = find_duplicates table_headers in
-    match duplicates with
-    | None -> ()
-    | Some p ->
-      Printf.ksprintf (parse_error None) "table [%s] is defined more than once" (Utils.string_of_path p)
+  let check_duplicates xs x = List.iter (check_duplicate x) xs
+
+  let rec is_child_path child parent =
+    match child, parent with
+    | [], [] -> false
+    | [], (_ :: _) ->
+      (* The alleged parent path is longer, so it can't actually be a parent. *)
+      false
+    | (_ :: _), [] ->
+      (* There's nothing left of the parent path after eliminating the common subset,
+         so it's definitely a parent. *)
+      true
+    | (x :: xs), (y :: ys) ->
+      if x = y then is_child_path xs ys
+      else false
 
   let to_pairs ns = List.map (fun (k, v) -> Pair (k, v)) ns
 
@@ -347,14 +366,14 @@ module Parser = struct
       let ns = to_pairs ns in
       from_statements ~path:[] (TomlInlineTable []) ns
     | _ -> failwith "otoml internal error: table header or a non-inline table inside a value. Please report a bug."
-  and from_statements ?(path=[]) toml ss =
+  and from_statements ?(path=[]) ?(seen_paths=[]) toml ss =
     match ss with
     | [] -> toml
     | s :: ss' -> begin
       match s with
       | Pair (k, v) ->
         let toml = insert toml (path @ k) (value_of_node v) in begin
-          try from_statements ~path:path toml ss'
+          try from_statements ~path:path ~seen_paths:seen_paths toml ss'
           with Duplicate_key err ->
             (* A distinct exception is used here to allow it to propagate up
                across multiple recursion levels, so that we can print a full path to the table
@@ -363,10 +382,12 @@ module Parser = struct
              *)
             parse_error None @@ Printf.sprintf "in table [%s]: %s" (Utils.string_of_path path) err
         end
-      | TableHeader ks ->
+      | (TableHeader ks) as n ->
+        let () = check_duplicates seen_paths n in
         let toml = insert toml ks (TomlTable []) in
-        from_statements ~path:ks toml ss'
-      | TableArrayHeader ks ->
+        from_statements ~path:ks ~seen_paths:(n :: seen_paths) toml ss'
+      | (TableArrayHeader ks) as n ->
+        let () = check_duplicates seen_paths n in
         let tbl, ss' = read_table [] ss' in
         let tbl = from_statements (TomlTable []) (to_pairs tbl) in
         let existing_value = find_opt get_value toml ks in
@@ -374,11 +395,11 @@ module Parser = struct
         | Some (TomlTableArray ts) ->
           (* Array of tables already exists, we need to append a new table to it. *)
           let toml = update toml ks (Some (TomlTableArray (ts @ [tbl]))) in
-          from_statements ~path:path toml ss'
+          from_statements ~path:path ~seen_paths:seen_paths toml ss'
         | None ->
           (* It didn't exist before, we need to create it now. *)
           let toml = insert toml ks (TomlTableArray [tbl]) in
-          from_statements ~path:path toml ss'
+          from_statements ~path:path ~seen_paths:(n :: seen_paths) toml ss'
         | Some (_ as v) ->
           (* Some other value already exists at that path, so it's not a valid TOML. *)
           parse_error None @@ Printf.sprintf "cannot create a table array [[%s]], it would override a previously defined value of type %s"
@@ -391,7 +412,6 @@ module Parser = struct
   let parse lexbuf =
     try
       let toml_statements = _parse lexbuf (Toml_parser.Incremental.toml_ast lexbuf.lex_curr_p) in
-      let () = check_duplicate_tables toml_statements in
       let toml = from_statements (TomlTable []) toml_statements in
       Ok toml
     with
