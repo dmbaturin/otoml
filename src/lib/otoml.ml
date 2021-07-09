@@ -273,19 +273,6 @@ module Parser = struct
           p (type_string value)
       end
 
-  let rec read_table acc stmts =
-    match stmts with
-    | [] ->
-      (* End of file was reached *)
-      (List.rev acc, [])
-    | stmt :: stmts' ->
-      begin match stmt with
-      | Pair (k, v) -> read_table ((k, v) :: acc) stmts'
-      | _ as s ->
-        (* A new table or an array of tables begins here, end of table was reached *)
-        (List.rev acc, (s :: stmts'))
-      end
-
   (* The insert function takes care of finding duplicate leaf keys in tables
      and preventing attempts to override a leaf key with a subtable when inserting a value at a path.
 
@@ -359,6 +346,34 @@ module Parser = struct
     | None | Some [] -> false
     | _ -> true
 
+  let rec read_table ?(table_array_path=None) ?(parent_path=[]) acc stmts =
+    match stmts with
+    | [] ->
+      (* End of file was reached *)
+      (List.rev acc, [])
+    | stmt :: stmts' ->
+      begin match stmt with
+      | Pair (k, v) ->
+        let k = if parent_path = [] then k else List.append parent_path k in
+        read_table ~table_array_path:table_array_path ~parent_path:parent_path ((k, v) :: acc) stmts'
+      | TableHeader ps ->
+        if Option.is_none table_array_path then (List.rev acc, (stmt :: stmts')) else
+        let parent_path = Option.get table_array_path in
+        let c = path_complement ps parent_path in begin
+          match c with
+          | None | Some [] ->
+            (* It's either a start of an unrelated table, or even worse--a duplicate.
+               In any case, we'll let the caller deal with it.
+             *)
+            (List.rev acc, (stmt :: stmts'))
+          | Some ps ->
+            read_table ~table_array_path:table_array_path ~parent_path:ps acc stmts'
+        end
+      | _ as stmt ->
+        (* A array of tables begins here, end of table was reached *)
+        (List.rev acc, (stmt :: stmts'))
+      end
+
   let to_pairs ns = List.map (fun (k, v) -> Pair (k, v)) ns
 
   let rec value_of_node n =
@@ -398,7 +413,7 @@ module Parser = struct
         from_statements ~path:ks ~seen_paths:(n :: seen_paths) toml ss'
       | (TableArrayHeader ks) as n ->
         let () = check_duplicates seen_paths n in
-        let tbl, ss' = read_table [] ss' in
+        let tbl, ss' = read_table ~table_array_path:(Some ks) [] ss' in
         let tbl = from_statements (TomlTable []) (to_pairs tbl) in
         let existing_value = find_opt get_value toml ks in
         begin match existing_value with
