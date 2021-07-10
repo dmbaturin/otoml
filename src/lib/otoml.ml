@@ -1,6 +1,8 @@
 include Types
 open Common
 
+let () = Printexc.record_backtrace true
+
 (* Conversions between different variants of the same type. *)
 
 let table_to_inline t =
@@ -167,7 +169,7 @@ let update_field value key new_value =
   | TomlInlineTable fs -> TomlInlineTable (update fs key new_value)
   | _ -> Printf.ksprintf key_error "cannot update field %s: value is %s, not a table" key (type_string value)
 
-let rec update value ?(use_inline_tables=false) path new_value =
+let rec update ?(update_table_arrays=false) ?(use_inline_tables=false) value path new_value =
   let make_empty_table use_inline =
     if use_inline then (TomlInlineTable []) else (TomlTable [])
   in
@@ -176,8 +178,27 @@ let rec update value ?(use_inline_tables=false) path new_value =
   | [p] -> update_field value p new_value
   | p :: ps ->
     let nested_value = field_opt p value |> Option.value ~default:(make_empty_table use_inline_tables) in
-    let nested_value = update nested_value ps new_value in
-    update_field value p (Some nested_value)
+    begin match nested_value with
+    | TomlTableArray ts ->
+      if not update_table_arrays then
+        (* Printf.ksprintf type_error "cannot update field %s: value is an array of tables, not a table" p *)
+         begin match new_value with
+         | Some ((TomlTable _) as v) ->
+           update_field value p (Some (TomlTableArray (ts @ [v])))
+         | _ ->
+           let nested_value = update ~update_table_arrays:update_table_arrays nested_value ps new_value in
+           update_field value p (Some nested_value)
+         end 
+      else
+        let body, tail = Utils.split_list ts in
+        let tail = Option.value ~default:(TomlTable []) tail in
+        let tail = update ~update_table_arrays:update_table_arrays tail ps new_value in
+        let ts' = body @ [tail] in
+        update_field value p (Some (TomlTableArray ts'))
+    | _ ->
+      let nested_value = update ~update_table_arrays:update_table_arrays nested_value ps new_value in
+      update_field value p (Some nested_value)
+    end
 
 module Utils = struct
   include Utils
@@ -225,84 +246,6 @@ module Parser = struct
     | I.Rejected ->
        raise (Parse_error (None, "invalid syntax (parser rejected the input)"))
 
-  let rec insert value path new_value =
-    match path with
-    | [] -> failwith "Cannot update a TOML value at an empty path"
-    | [p] -> begin
-      match value with
-      | (TomlTable kvs | TomlInlineTable kvs) ->
-        (* XXX: Adding to the end makes the operation quadratic,
-           but I believe preserving the original order is a worthwhile
-           even if the spec does not require it.
-           If this becomes a performance issue, it's possible to reverse the tables just once,
-           when the structure is complete. *)
-        let orig_value = List.assoc_opt p kvs in begin
-        match orig_value with
-        | Some orig_value ->
-          (* As the spec says...
-             ```
-             # [x] you
-             # [x.y] don't
-             # [x.y.z] need these
-             [x.y.z.w] # for this to work
-
-             [x] # defining a super-table afterward is ok
-             ```
-
-             Empty supertable leads to exactly this case being matched,
-             so we need to handle that case explicitly
-             and only raise an error if the proposed value is not an empty table.
-           *)
-          if new_value = (TomlTable []) then value else
-          Printf.ksprintf duplicate_key_error "duplicate key \"%s\" (overrides an original value of type %s with %s)"
-            p (type_string orig_value) (type_string new_value)
-        | None -> TomlTable (kvs @ [(p, new_value)])
-        end
-      | _ ->
-        Printf.ksprintf duplicate_key_error "subtable \"%s\" overrides a previously defined key (original value had type %s)"
-          p (type_string new_value)
-      end
-    | p :: ps ->
-      let nested_value = field_opt p value |> Option.value ~default:(TomlTable []) in begin
-      match nested_value with
-      | TomlTable _ ->
-        let nested_value = insert nested_value ps new_value in
-        update_field value p (Some nested_value)
-      | _ ->
-        Printf.ksprintf duplicate_key_error "subtable \"%s\" overrides a previously defined key (original value had type %s)"
-          p (type_string value)
-      end
-
-  (* The insert function takes care of finding duplicate leaf keys in tables
-     and preventing attempts to override a leaf key with a subtable when inserting a value at a path.
-
-     Unfortunately, that is not enough to detect duplicate table headers
-     since multiple paths that share the same prefix are perfectly normal,
-     only exact duplicates like a "[foo.bar]" written twice are invalid.
-
-     Here we sort the list of table headers in a "natural order"
-     and check if any two adjacent items are equal.
-     If they are, there's a table declared at least twice in the file.
-   *)
-
-  (* The "natural order" is defined as follows:
-       0. Empty paths are equal.
-       1. Any non-empty path is greater than an empty one.
-       2. Non-empty paths with non-equal first items k and k' relate as their first items
-          (e.g. [1;2;3] < [2; 3])
-       3. Non-empty paths that start with the same item relate as their tails.
-
-     Hopefully this covers all possible cases.
-   *)
-  let rec compare_paths ks ks' =
-    match ks, ks' with
-    | [], [] -> 0
-    | (_ :: _), [] -> 1
-    | [], (_ :: _) -> -1
-    | (k :: ks), (k' :: ks') ->
-      if k = k' then compare_paths ks ks' else
-      compare k k'
-
   let check_duplicate p' p = 
     match p, p' with
     | TableHeader p, TableHeader p' ->
@@ -346,35 +289,83 @@ module Parser = struct
     | None | Some [] -> false
     | _ -> true
 
-  let rec read_table ?(table_array_path=None) ?(parent_path=[]) acc stmts =
-    match stmts with
-    | [] ->
-      (* End of file was reached *)
-      (List.rev acc, [])
-    | stmt :: stmts' ->
-      begin match stmt with
-      | Pair (k, v) ->
-        let k = if parent_path = [] then k else List.append parent_path k in
-        read_table ~table_array_path:table_array_path ~parent_path:parent_path ((k, v) :: acc) stmts'
-      | TableHeader ps ->
-        if Option.is_none table_array_path then (List.rev acc, (stmt :: stmts')) else
-        let parent_path = Option.get table_array_path in
-        let c = path_complement ps parent_path in begin
-          match c with
-          | None | Some [] ->
-            (* It's either a start of an unrelated table, or even worse--a duplicate.
-               In any case, we'll let the caller deal with it.
-             *)
-            (List.rev acc, (stmt :: stmts'))
-          | Some ps ->
-            read_table ~table_array_path:table_array_path ~parent_path:ps acc stmts'
-        end
-      | _ as stmt ->
-        (* A array of tables begins here, end of table was reached *)
-        (List.rev acc, (stmt :: stmts'))
-      end
-
   let to_pairs ns = List.map (fun (k, v) -> Pair (k, v)) ns
+
+  (* This is for cases that _should not happen_,
+     but I haven't proved that they actually _can't_ happen. *)
+  let internal_error msg =
+    failwith @@ Printf.sprintf "otoml internal error: %s. Please report a bug." msg
+
+  let rec insert ?(if_not_exists=false) ?(append_table_arrays=false) toml path value =
+    let check_exists tbl p if_not_exists value =
+      let orig_value = field_opt p tbl in
+      match orig_value with
+      | Some v ->
+        if if_not_exists then true
+        else duplicate_key_error @@ Printf.sprintf
+          "duplicate key \"%s\" overrides a value of type %s with a value of type %s"
+          p (type_string v) (type_string value)
+      | None -> false
+    in
+    match path with
+    | [] -> internal_error "insert called with empty path"
+    | [p] ->
+      begin match toml with
+      | (TomlTable kvs) as tbl ->
+        if append_table_arrays then
+          let orig_value = field_opt p toml in
+          begin match orig_value, value with
+          | Some (TomlTableArray ts), TomlTable _ ->
+            let t_array = TomlTableArray (ts @ [value]) in
+            update_field tbl p (Some t_array)
+          | Some (TomlTableArray _), v ->
+           internal_error @@ Printf.sprintf "trying to append a value of type %s to an array of tables"
+             (type_string v)
+          | Some v, v' ->
+            internal_error @@ Printf.sprintf "insert ~append_table_arrays:true called on values of types %s and %s"
+              (type_string v) (type_string v')
+          | None, _ ->
+            internal_error @@ Printf.sprintf "insert ~append_table_arrays:true called on an empty array"
+          end
+        else if (check_exists tbl p if_not_exists value) then toml
+        else TomlTable (kvs @ [p, value])
+      | (TomlInlineTable kvs) as tbl ->
+        if (check_exists tbl p if_not_exists value) then toml
+        else TomlInlineTable (kvs @ [p, value])
+     | _ as v ->
+        internal_error @@ Printf.sprintf "path is too long (key \"%s\" left, at a value of type %s)"
+          p (type_string v)
+      end
+    | p :: ps ->
+      begin match toml with
+      | ((TomlTable kvs) | (TomlInlineTable kvs))  as orig_table ->
+        let orig_value = field_opt p toml in
+        begin match orig_value with
+        | Some (((TomlTable _) | (TomlInlineTable _)) as t) ->
+          let subtable = insert ~if_not_exists:if_not_exists ~append_table_arrays:append_table_arrays t ps value
+          in update_field orig_table p (Some subtable)
+        | Some (TomlTableArray ts) ->
+          let body, tail = Utils.split_list ts in
+          let tail = Option.value ~default:(TomlTable []) tail in
+          let tail =
+            insert ~if_not_exists:if_not_exists ~append_table_arrays:append_table_arrays tail ps value
+          in
+          let t_array = TomlTableArray (body @ [tail]) in
+          update_field orig_table p (Some t_array)
+        | Some (_ as ov) ->
+          duplicate_key_error @@ Printf.sprintf
+            "duplicate key \"%s\" overrides a value of type %s with a value of type %s"
+            p (type_string ov) (type_string value)
+        | None ->
+          let tbl = TomlTable [] in
+          let tbl = insert ~if_not_exists:if_not_exists ~append_table_arrays:append_table_arrays tbl ps value in
+          TomlTable (kvs @ [p, tbl])
+        end
+     | _ as v ->
+       duplicate_key_error @@ Printf.sprintf
+         "duplicate key \"%s\" overrides a value of type %s with a value of type %s (path remainder: [%s])"
+         p (type_string v) (type_string value) (Utils.string_of_path ps)
+      end
 
   let rec value_of_node n =
     match n with
@@ -389,56 +380,48 @@ module Parser = struct
     | NodeArray ns -> TomlArray (List.map value_of_node ns)
     | NodeInlineTable ns ->
       let ns = to_pairs ns in
-      from_statements ~path:[] (TomlInlineTable []) ns
-    | _ -> failwith "otoml internal error: table header or a non-inline table inside a value. Please report a bug."
-  and from_statements ?(path=[]) ?(seen_paths=[]) toml ss =
-    match ss with
-    | [] -> toml
-    | s :: ss' -> begin
-      match s with
+      (* Since inline tables cannot contain table arrays,
+         the tail returned by from_statements must always be empty.
+       *)
+      let _, res = from_statements (TomlInlineTable []) [] [] ns in
+      res
+    | _ -> internal_error "table header or a non-inline table inside a value"
+  and from_statements toml parent_path seen_paths statements =
+    match statements with
+    | [] -> [], toml
+    | s :: ss ->
+      begin match s with
       | Pair (k, v) ->
-        let toml = insert toml (path @ k) (value_of_node v) in begin
-          try from_statements ~path:path ~seen_paths:seen_paths toml ss'
-          with Duplicate_key err ->
-            (* A distinct exception is used here to allow it to propagate up
-               across multiple recursion levels, so that we can print a full path to the table
-               where duplication occurs.
-               If we reused Parse_error, it would be caught and re-raised at each leve.
-             *)
-            parse_error None @@ Printf.sprintf "in table [%s]: %s" (Utils.string_of_path path) err
-        end
+        let full_path = parent_path @ k in
+        let value = value_of_node v in
+        let toml = insert toml full_path value in
+        (* Add value paths to seen paths as fake table headers to prevent
+           actual table and table array headers from duplicating then. *)
+        let seen_paths = (TableHeader full_path) :: seen_paths in 
+        from_statements toml parent_path seen_paths ss
       | (TableHeader ks) as n ->
         let () = check_duplicates seen_paths n in
-        let toml = insert toml ks (TomlTable []) in
-        from_statements ~path:ks ~seen_paths:(n :: seen_paths) toml ss'
+        let seen_paths = n :: seen_paths in
+        let toml = insert ~if_not_exists:true toml ks (TomlTable []) in
+        from_statements toml ks seen_paths ss
       | (TableArrayHeader ks) as n ->
         let () = check_duplicates seen_paths n in
-        let tbl, ss' = read_table ~table_array_path:(Some ks) [] ss' in
-        let tbl = from_statements (TomlTable []) (to_pairs tbl) in
-        let existing_value = find_opt get_value toml ks in
-        begin match existing_value with
-        | Some (TomlTableArray ts) ->
-          (* Array of tables already exists, we need to append a new table to it. *)
-          let toml = update toml ks (Some (TomlTableArray (ts @ [tbl]))) in
-          from_statements ~path:path ~seen_paths:seen_paths toml ss'
-        | None ->
-          (* It didn't exist before, we need to create it now. *)
-          let toml = insert toml ks (TomlTableArray [tbl]) in
-          from_statements ~path:path ~seen_paths:(n :: seen_paths) toml ss'
-        | Some (_ as v) ->
-          (* Some other value already exists at that path, so it's not a valid TOML. *)
-          parse_error None @@ Printf.sprintf "cannot create a table array [[%s]], it would override a previously defined value of type %s"
-            (Utils.string_of_path ks) (type_string v)
-        end
-        | _ ->
-          failwith "otoml internal error: bare value as a top level statement. Please report a bug."
+        let toml = insert ~if_not_exists:true toml ks (TomlTableArray []) in
+        if not (is_child_path ks parent_path) then
+          let toml = insert ~append_table_arrays:true toml ks (TomlTable []) in
+          let stmts, toml = from_statements toml ks [n] ss in
+          from_statements toml [] seen_paths stmts
+        else
+          from_statements toml ks (n :: seen_paths) ss
+      | _ -> internal_error "bare value in the AST"
       end
 
   let parse lexbuf =
     try
       let toml_statements = _parse lexbuf (Toml_parser.Incremental.toml_ast lexbuf.lex_curr_p) in
-      let toml = from_statements (TomlTable []) toml_statements in
-      Ok toml
+      let tail_stmts, toml = from_statements (TomlTable []) [] [] toml_statements in
+      if tail_stmts <> [] then internal_error "from_statements left a non-empty tail"
+      else (Ok toml)
     with
     | Parse_error (pos, err) ->
       begin match pos with

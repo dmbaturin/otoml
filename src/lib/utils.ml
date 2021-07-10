@@ -52,3 +52,13 @@ let make_printable_key k =
 
 let string_of_path ps =
   List.map make_printable_key ps |> String.concat "."
+
+let split_list xs =
+  let rec aux acc xs =
+    match xs with
+    | [] -> [], None
+    | x :: [] -> (List.rev acc), (Some x)
+    | x :: xs' -> aux (x :: acc) xs'
+  in aux [] xs
+
+   

@@ -14,5 +14,5 @@ let type_string v =
   | TomlLocalDate _ -> "local date"
   | TomlLocalDateTime _ -> "local date-time"
   | TomlOffsetDateTime _ -> "offset date-time"
-  | TomlArray _ -> "array"
-  | TomlTable _ | TomlInlineTable _ | TomlTableArray _ -> "table"
+  | TomlArray _ | TomlTableArray _ -> "array"
+  | TomlTable _ | TomlInlineTable _ -> "table"
