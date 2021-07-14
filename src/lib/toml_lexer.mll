@@ -413,12 +413,20 @@ rule token = parse
     if not ((in_top_level ()) || (in_inline_table ())) then FLOAT s else
     (* If we are in the top level context, it's a key that looks like a float. *)
     if Option.is_some float_sign then lexing_error lexbuf @@ Printf.sprintf "\"%s\" is not a valid key" s
-    else
-    match float_value with
+    else match float_value with
     | "nan" | "inf" -> KEY(float_value)
     | _ ->
-      if Option.is_none @@ String.index_opt float_value '.' then KEY(float_value)
-      else failwith "unimplemented"
+      if Option.is_none @@ String.index_opt float_value '.' then KEY(float_value) else
+      (* This is a bizzare but valid key that looks like a dotted float (like "2.5"). *)
+      let float_parts = String.split_on_char '.' float_value in
+      begin match float_parts with
+      | [i_part; f_part] ->
+        let () = move_position lexbuf (~-((String.length f_part) + 1)) in
+        KEY i_part
+      | _ -> failwith @@ Printf.sprintf
+          "otoml lexing error: something went wrong when processing a key that looks like a dotted float (\"%s\")"
+          float_value
+      end
   }
 | ("true" | "false") as s
   (* Boolean literals must always be lowercase in TOML. *)
