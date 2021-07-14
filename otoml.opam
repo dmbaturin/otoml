@@ -11,7 +11,10 @@ build: [
 ]
 depends: [
   "ocaml" {>= "4.03.0"}
+  "menhir"
+  "menhirLib"
   "dune" {>= "1.9"}
+  "uutf"
 ]
 synopsis: "TOML library (work in progress)"
 description: """
