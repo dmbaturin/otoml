@@ -1,7 +1,5 @@
 # OTOML
 
-[This is a work in progress and the README lies!]
-
 A TOML parsing and manipulation library for OCaml.
 
 In short:
@@ -22,8 +20,8 @@ A lot of time it's written, edited, and read by humans.
 
 That is why TOML supports comments and multiple ways to write the same data. 
 
-Ideally, when a program reads a TOML file and writes it back, it should be able to preserve
-comments, user's choice of using inline records vs sections (i.e. `section = { ...}` vs `[section]`) and so on.
+Ideally, when a program reads a TOML file and writes it back, it should be able to echo it back and respect
+user's choice of using inline records vs sections (i.e. `section = {...}` vs `[section]`) and so on.
 
 OTOML preserves that information and makes it available to the user.
 
@@ -31,30 +29,35 @@ It also offers a convenient interface for accessing and modifying values in deep
 
 ## Example
 
-Mockup:
+```
+(* Parse a TOML string. *)
 
-```ocaml
-# let toml_str = "
+utop # let t = Otoml.Parser.from_string "
+[settings]
+  [settings.basic]
+    crash_randomly = true
+" ;;
+val t : Otoml.t =
+  Otoml.TomlTable
+   [("settings",
+     Otoml.TomlTable
+      [("basic", Otoml.TomlTable [("crash_randomly", Otoml.TomlBoolean true)])])]
 
-# There are many like it, but this one is mine
-[my_section]
-  inline_record = { my_option = false }
-"
+(* Look up a deeply nested value with a known type. *)
+utop # Otoml.find Otoml.get_boolean t ["settings"; "basic"; "crash_randomly"] ;;
+- : bool = true
 
-# let toml = Otoml.from_string toml_str;;
+(* Update a deeply nested value. *)
+utop # let t = Otoml.update t ["settings"; "basic"; "crash_randomly"] (Some (Otoml.TomlInteger 0)) ;;
+val t : Otoml.t =
+  Otoml.TomlTable
+   [("settings",
+     Otoml.TomlTable
+      [("basic", Otoml.TomlTable [("crash_randomly", Otoml.TomlInteger 0)])])]
 
-- : Otoml.t = 
-TomlTable [("my_section", TomlInlineTable [("inline_record", TomlTable [("my_option", TomlBoolean false)])])]
-
-# Otoml.to_string ~indent_width=4 ~indent_subtables=false ~newline_before_table=true v;;
-[my_section]
-    inline_record = { my_option = false }
-
-# Otoml.find get_bool t ["my_section"; "inline_record"; "my_option"] ;;
+(* Look up a value and convert it to desired type (if possible). *)
+utop # Otoml.find (Otoml.get_boolean ~strict:false) t ["settings"; "basic"; "crash_randomly"] ;;
 - : bool = false
-
-# Otoml.find get_value t ["my_section"; "inline_record"; "my_option"] ;;
-- : t = TomlBoolean false
 
 ```
 
