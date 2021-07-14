@@ -437,6 +437,14 @@ rule token = parse
 (* Bare keys. CAUTION: this _must_ come after primitive values
    because integers and booleans match the same regex! *)
 | ['A'-'Z''a'-'z''0'-'9''_''-']+ as s { KEY(s) }
+| "''''''" | '"' '"' '"' '"' '"' '"'
+  {
+    (* For some reason, read_*_multiline_string fail with "empty token"
+       on strings that have nothing between triple quotes.
+       This is a quick fix for an issue I don't yet understand.
+     *)
+    MULTILINE_STRING ""
+  }
 | "'''''"
   { let buf = Buffer.create 512 in Buffer.add_string buf "''"; read_single_quoted_multiline_string buf lexbuf }
 | "''''"
