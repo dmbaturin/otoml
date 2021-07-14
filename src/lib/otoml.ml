@@ -227,7 +227,7 @@ module Parser = struct
         | Not_found -> "invalid syntax (no specific message for this eror)"
 
   let rec _parse lexbuf (checkpoint (* : (signal list) I.checkpoint *)) =
-     match checkpoint with
+    match checkpoint with
     | I.InputNeeded _env ->
       let token = Toml_lexer.token lexbuf in
       let startp = lexbuf.lex_start_p
@@ -417,6 +417,12 @@ module Parser = struct
       end
 
   let parse lexbuf =
+    (* Reset the lexer contex
+       for the case when previous lexing failures left the lexer
+       in an inconsistent state.
+       I hope to make this pure and re-entrant some time.
+     *)
+    let () = Toml_lexer.context_stack := [] in
     try
       let toml_statements = _parse lexbuf (Toml_parser.Incremental.toml_ast lexbuf.lex_curr_p) in
       let tail_stmts, toml = from_statements (TomlTable []) [] [] toml_statements in
