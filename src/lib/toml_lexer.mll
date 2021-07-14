@@ -583,7 +583,10 @@ and read_double_quoted_multiline_string buf =
   | '\\' 't'  { Buffer.add_char buf '\t'; read_double_quoted_multiline_string buf lexbuf }
   | '\\' '\'' { Buffer.add_char buf '\''; read_double_quoted_multiline_string buf lexbuf }
   | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_multiline_string buf lexbuf }
-  | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_multiline_string buf lexbuf }
+  | '\\' [' ' '\t' '\n']* '\n' [' ' '\t' '\n']*
+    {
+      newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_multiline_string buf lexbuf
+    }
   | '\n'      { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_double_quoted_multiline_string buf lexbuf }
   | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_multiline_string buf lexbuf }
   | t_invalid_escape
