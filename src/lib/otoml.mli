@@ -9,7 +9,6 @@ exception Type_error of string
 (** Raised when a TOML document cannot be parsed due to syntax or semantic errors. *)
 exception Parse_error of ((int * int) option * string)
 
-
 type t =
   | TomlString of string
   | TomlInteger of int
@@ -42,6 +41,8 @@ module Parser : sig
   val from_file_result : string -> (t, string) result
   val from_channel_result : in_channel -> (t, string) result
   val from_string_result : string -> (t, string) result
+
+  val format_parse_error : (int * int) option -> string -> string
 end
 
 (** Constructors *)
@@ -72,6 +73,8 @@ val get_float : ?strict:bool -> t -> float
 val get_boolean : ?strict:bool -> t -> bool
 
 (** High-level interface *)
+
+val list_table_keys : t -> string list
 
 val find : (t -> 'a) -> t -> string list -> 'a
 
