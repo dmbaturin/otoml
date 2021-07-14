@@ -43,7 +43,7 @@ and json_of_value v =
   | TomlTableArray _ as a -> to_json a
 
 let () =
-  let res = Parser.from_channel stdin in
+  let res = Parser.from_channel_result stdin in
   match res with
   | Ok toml ->
     let json = to_json toml in

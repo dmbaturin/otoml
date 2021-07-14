@@ -1,18 +1,10 @@
-open Types
+(* Errors *)
+
+exception Key_error of string
+exception Type_error of string
+exception Parse_error of ((int * int) option * string)
 
 (* Convenience functions for throwing exceptions *)
 let key_error err = raise (Key_error err)
 let type_error err = raise (Type_error err)
 
-let type_string v =
-  match v with
-  | TomlString _ -> "string"
-  | TomlInteger _ -> "integer"
-  | TomlFloat _ -> "float"
-  | TomlBoolean _ -> "boolean"
-  | TomlLocalTime _ -> "local time"
-  | TomlLocalDate _ -> "local date"
-  | TomlLocalDateTime _ -> "local date-time"
-  | TomlOffsetDateTime _ -> "offset date-time"
-  | TomlArray _ | TomlTableArray _ -> "array"
-  | TomlTable _ | TomlInlineTable _ -> "table"

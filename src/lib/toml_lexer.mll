@@ -22,7 +22,7 @@
 
 {
 
-open Parser_utils
+open Common
 open Toml_parser
 
 let lexing_error lexbuf msg =
