@@ -1,6 +1,0 @@
-(executable
- (name decoder)
- (public_name decoder)
- (libraries
-   yojson
-   otoml))

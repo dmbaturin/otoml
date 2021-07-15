@@ -1,3 +1,8 @@
+(* This is a client executable for the https://github.com/BurntSushi/toml-test TOML test suite.
+
+   Compile with: ocamlfind ocamlopt -package otoml,yojson ./examples/testsuite_client_decoder.ml -o decoder
+ *)
+
 open Otoml
 
 let type_string v =
