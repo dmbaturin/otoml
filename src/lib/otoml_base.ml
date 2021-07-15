@@ -254,7 +254,25 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     let rec format_primitive ?(table_path=[]) ?(inline=false) ?(table_array=false) ?(indent=true) ?(indent_level=0) settings callback v =
       match v with
       | TomlString s ->
-	callback "\""; callback @@ Utils.escape_string s; callback "\""
+          (* Use multi-line string syntax for strings with line breaks. *)
+          if String.contains s '\n' then
+            begin
+              (* As the spec says:
+                 >A newline immediately following the opening delimiter will be trimmed.
+
+                 Thus it's safe to add a line break after the opening quotes,
+                 which I think is much more readable.
+               *)
+              callback "\"\"\"\n";
+              callback @@ Utils.escape_string ~exclude:['\r'; '\n'] s;
+              callback "\"\"\"";
+            end
+          else
+            begin
+              callback "\"";
+              callback @@ Utils.escape_string s;
+              callback "\""
+            end
       | TomlInteger i ->
 	callback @@ I.to_string i
       | TomlFloat f ->
