@@ -241,7 +241,8 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       indent_width: int;
       indent_character: char;
       indent_subtables: bool;
-      newline_before_table: bool
+      newline_before_table: bool;
+      collapse_tables: bool
     }
 
     let make_indent indent settings level =
@@ -249,6 +250,11 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       String.make (settings.indent_width * level) settings.indent_character
 
     let has_nontable_items t =
+      (* Headers of empty tables _must_ be displayed,
+         so for the purpose of collapsing tables for readability,
+         an empty table is _not_ collapsible.
+       *)
+      if t = [] then true else
       List.fold_left (fun acc (_, v) -> (match v with TomlTable _ -> false | _ -> true) || acc) false t
 
     let rec format_primitive ?(table_path=[]) ?(inline=false) ?(table_array=false) ?(indent=true) ?(indent_level=0) settings callback v =
@@ -299,8 +305,9 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 	a;
 	callback "]"
       | TomlTable t ->
+        let is_shell_table = has_nontable_items t in
 	let () =
-	  if (table_path <> []) && (has_nontable_items t) then begin
+	  if (table_path <> []) && (not settings.collapse_tables || is_shell_table) then begin
 	    if settings.newline_before_table then callback "\n";
 	    (* Table headers look best when they are at the same indent level as the parent table's keys.
 	       Since the indent level is incremented by the format_pair function,
@@ -316,8 +323,8 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 	let inline = if table_array then false else inline in
 	let t = if table_array then List.map (fun (k, v) -> (k, force_inline v)) t else t in
 	let f = format_pair ~table_path:table_path
-		  ~indent:indent ~indent_level:indent_level ~inline:inline
-		  ~table_array:table_array
+		  ~indent:indent ~indent_level:indent_level
+                  ~inline:inline ~table_array:table_array 
 		  settings callback
 	in
 	List.iter f t
@@ -339,11 +346,13 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 	   so, unlike other values, it's impossible to render it in isolation.
 	   Only the render_pair function called from a table can render table arrays correctly. *)
 	failwith "TOML arrays of tables cannot be formatted out of the parent table context"
-    and format_pair ?(table_path=[]) ?(indent=true) ?(indent_level=0) ?(inline=false) ?(table_array=false) settings callback (k, v) =
+    and format_pair ?(table_path=[]) ?(indent=true) ?(indent_level=0)
+        ?(inline=false) ?(table_array=false) settings callback (k, v) =
       match v with
-      | TomlTable _ as v ->
+      | TomlTable kvs as v ->
+        let no_level_increase = (has_nontable_items kvs) && settings.collapse_tables in
 	let indent_level =
-	  if settings.indent_subtables then indent_level + 1
+	  if settings.indent_subtables && not no_level_increase then indent_level + 1
 	  else if indent_level < 1 then indent_level + 1 else indent_level
 	in
 	format_primitive ~table_path:(table_path @ [k]) ~indent_level:indent_level ~table_array:table_array
@@ -361,24 +370,26 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 	format_primitive ~table_path:table_path ~indent:indent settings callback v;
 	if not inline then callback "\n"
 
-    let to_string ?(indent_width=2) ?(indent_character=' ') ?(indent_subtables=false) ?(newline_before_table=true) v =
+    let to_string ?(indent_width=2) ?(indent_character=' ') ?(indent_subtables=false) ?(newline_before_table=true) ?(collapse_tables=false) v =
       let settings = {
 	indent_width = indent_width;
 	indent_character = indent_character;
 	indent_subtables = indent_subtables;
-	newline_before_table = newline_before_table
+	newline_before_table = newline_before_table;
+        collapse_tables= collapse_tables
       }
       in
       let buf = Buffer.create 4096 in
       let () = format_primitive settings (Buffer.add_string buf) v in
       Buffer.contents buf
 
-    let to_channel ?(indent_width=2) ?(indent_character=' ') ?(indent_subtables=false) ?(newline_before_table=true) chan v =
+    let to_channel ?(indent_width=2) ?(indent_character=' ') ?(indent_subtables=false) ?(newline_before_table=true) ?(collapse_tables=false) chan v =
       let settings = {
 	indent_width = indent_width;
 	indent_character = indent_character;
 	indent_subtables = indent_subtables;
-	newline_before_table = newline_before_table
+	newline_before_table = newline_before_table;
+        collapse_tables= collapse_tables
       }
       in
       format_primitive settings (output_string chan) v

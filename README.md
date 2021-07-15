@@ -59,6 +59,15 @@ val t : Otoml.t =
 utop # Otoml.find (Otoml.get_boolean ~strict:false) t ["settings"; "basic"; "crash_randomly"] ;;
 - : bool = false
 
+(* There's a pretty-printer, too! *)
+utop # let t = Otoml.Parser.from_string "[foo] \n [foo.bar] \n baz = {quux = false} \n xyzzy = [ ] \n" |>
+  Otoml.Printer.to_channel ~indent_width:4 ~indent_subtables:true ~collapse_tables:true stdout ;;
+
+[foo.bar]
+    baz = {quux = false}
+    xyzzy = []
+
+val t : unit = ()
 ```
 
 ## Deviations from the TOML 1.0 specification

@@ -25,11 +25,13 @@ type t =
 
 module Printer : sig
   val to_string :
-    ?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool -> ?newline_before_table:bool ->
+    ?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool ->
+    ?newline_before_table:bool -> ?collapse_tables:bool ->
     t -> string
 
-    val to_channel :
-    ?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool -> ?newline_before_table:bool ->
+  val to_channel :
+    ?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool ->
+    ?newline_before_table:bool -> ?collapse_tables:bool ->
     out_channel -> t -> unit
 end
 
