@@ -610,19 +610,23 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 
     let from_string_result s =
       try Ok (from_string s)
-      with Parse_error (pos, err) -> Error (format_parse_error pos err)
+      with
+      | Parse_error (pos, err) -> Error (format_parse_error pos err)
+      | Failure err -> Error (Printf.sprintf "otoml internal error: %s" err)
 
     let from_channel_result ic =
       try Ok (from_channel ic)
       with
       | Parse_error (pos, err) -> Error (format_parse_error pos err)
       | Sys_error err -> Error err
+      | Failure err -> Error (Printf.sprintf "otoml internal error: %s" err)
 
     let from_file_result f =
       try Ok (from_file f)
       with
       | Parse_error (pos, err) -> Error (format_parse_error pos err)
       | Sys_error err -> Error err
+      | Failure err -> Error (Printf.sprintf "otoml internal error: %s" err)
  end
 end
 

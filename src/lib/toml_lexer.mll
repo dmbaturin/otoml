@@ -334,9 +334,17 @@ rule token = parse
   {
     let () =
       (* If we were in the last value of that table,
-         we need to exit both the value context and the parent inline table context. *)
-      if in_inline_table_value () then (exit_context (); exit_context())
-      else exit_context ()
+         we need to exit both the value context and the parent inline table context.
+
+         It may also be a stray closing brace, which may lead to
+         attempts to exit a context that was never entered to begin with.
+         If that happens, best we can do is to return the token to the parser,
+         since it can't possibly be a valid syntax.
+       *)
+      try
+        if in_inline_table_value () then (exit_context (); exit_context())
+        else exit_context ()
+      with Failure _ -> ()
     in
     RIGHT_BRACE
   }
