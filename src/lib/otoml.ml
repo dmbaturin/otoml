@@ -1,6 +1,12 @@
 include Common
 
-module DefaultImpl = Otoml_base.Make (Default_impl.NativeInteger) (Default_impl.NativeFloat) (Default_impl.SimpleDate)
+module Base = struct
+  include Impl_sigs
+  include Default_impl
+
+  include Otoml_base
+end
+
+module DefaultImpl = Base.Make (Base.OCamlInteger) (Base.OCamlFloat) (Base.StringDate)
 
 include DefaultImpl
-

@@ -1,5 +1,5 @@
 
-module NativeFloat = struct
+module OCamlFloat = struct
   type t = Float.t 
 
   let normalize_nan f =
@@ -23,7 +23,7 @@ module NativeFloat = struct
   let of_boolean b = if b then 1.0 else 0.0
 end
 
-module NativeInteger = struct
+module OCamlInteger = struct
   type t = Int.t
 
   (* int_of_string correctly handles all possible TOML integers,
@@ -35,7 +35,7 @@ module NativeInteger = struct
   let of_boolean b = if b then 1 else 0
 end
 
-module SimpleDate = struct
+module StringDate = struct
   type t = string
 
   let local_time_of_string s = s

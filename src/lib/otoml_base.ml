@@ -1,4 +1,4 @@
-open Common
+include Common
 
 module Utils = struct
   include Utils
@@ -7,15 +7,19 @@ end
 include Impl_sigs
 
 module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
+  type toml_integer = I.t
+  type toml_float = F.t
+  type toml_date = D.t
+
   type t =
   | TomlString of string
-  | TomlInteger of I.t
-  | TomlFloat of F.t
+  | TomlInteger of toml_integer
+  | TomlFloat of toml_float
   | TomlBoolean of bool
-  | TomlOffsetDateTime of D.t
-  | TomlLocalDateTime of D.t
-  | TomlLocalDate of D.t
-  | TomlLocalTime of D.t
+  | TomlOffsetDateTime of toml_date
+  | TomlLocalDateTime of toml_date
+  | TomlLocalDate of toml_date
+  | TomlLocalTime of toml_date
   | TomlArray of t list
   | TomlTable of (string * t) list
   | TomlInlineTable of (string * t) list

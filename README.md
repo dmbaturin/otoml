@@ -29,7 +29,7 @@ It also offers a convenient interface for accessing and modifying values in deep
 
 ## Example
 
-```
+```ocaml
 (* Parse a TOML string. *)
 
 utop # let t = Otoml.Parser.from_string "
@@ -68,6 +68,39 @@ utop # let t = Otoml.Parser.from_string "[foo] \n [foo.bar] \n baz = {quux = fal
     xyzzy = []
 
 val t : unit = ()
+```
+
+## Plugging your own dependencies
+
+The default implementation is provided for convenience: it represents integer and floating point numbers
+with OCaml's native `int` and `float` types, and stores date/time values as strings
+that you can parse with your favorite calendar library.
+
+However, it's not hardcoded but built with an OCaml functor.
+This is how you could assemble the default implementation yourself.
+
+```ocaml
+module DefaultToml = Otoml.Base.Make (Otoml.Base.NativeInteger) (Otoml.Base.NativeFloat) (Otoml.Base.StringDate)
+```
+
+Thus you can replace any of the modules or all of them with your own.
+For example, this is how you can use [zarith](https://opam.ocaml.org/packages/zarith/) for a big integer implementation
+but keep native floats and simple string dates:
+
+```ocaml
+(* No signature ascription:
+   `module BigInteger : Otoml.Base.TomlInteger` would make the type t abstract,
+   which is inconvenient.
+ *)
+module BigInteger = struct
+  type t = Z.t
+  let of_string = Z.of_string
+  let to_string = Z.to_string
+  let of_boolean b = if b then Z.one else Z.zero
+  let to_boolean n = (n <> Z.zero)
+end
+
+module MyToml = Otoml.Base.Make (BigInteger) (Otoml.Base.OCamlFloat) (Otoml.Base.StringDate)
 ```
 
 ## Deviations from the TOML 1.0 specification
