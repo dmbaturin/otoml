@@ -78,13 +78,13 @@ val get_boolean : ?strict:bool -> t -> bool
 
 val list_table_keys : t -> string list
 
-val find : (t -> 'a) -> t -> string list -> 'a
+val find : t -> (t -> 'a) -> string list -> 'a
 
-val find_opt : (t -> 'a) -> t -> string list -> 'a option
+val find_opt : t -> (t -> 'a) -> string list -> 'a option
 
-val find_or : default:'a -> (t -> 'a) -> t -> string list -> 'a
+val find_or : default:'a -> t -> (t -> 'a) -> string list -> 'a
 
-val find_result : (t -> 'a) -> t -> string list -> ('a, string) result
+val find_result : t -> (t -> 'a) -> string list -> ('a, string) result
 
 val update : ?use_inline_tables:bool -> t -> string list -> t option -> t
 
@@ -205,13 +205,13 @@ module Base : sig
 
     val list_table_keys : t -> string list
 
-    val find : (t -> 'a) -> t -> string list -> 'a
+    val find : t -> (t -> 'a) -> string list -> 'a
 
-    val find_opt : (t -> 'a) -> t -> string list -> 'a option
+    val find_opt : t -> (t -> 'a) -> string list -> 'a option
 
-    val find_or : default:'a -> (t -> 'a) -> t -> string list -> 'a
+    val find_or : default:'a -> t -> (t -> 'a) -> string list -> 'a
 
-    val find_result : (t -> 'a) -> t -> string list -> ('a, string) result
+    val find_result : t -> (t -> 'a) -> string list -> ('a, string) result
 
     val update : ?use_inline_tables:bool -> t -> string list -> t option -> t
   end

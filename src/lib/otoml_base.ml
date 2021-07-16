@@ -203,7 +203,7 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     try Some (field k t)
     with Key_error _ -> None
 
-  let find accessor value path =
+  let find value accessor path =
     let make_dotted_path ps = Utils.string_of_path ps in
     let rec aux accessor path value =
       match path with
@@ -221,15 +221,15 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       Printf.ksprintf type_error "TOML type error occured while trying to retrieve a value at %s: %s"
 	(make_dotted_path path) msg
 
-  let find_opt accessor value path =
-    try Some (find accessor value path)
+  let find_opt value accessor path =
+    try Some (find value accessor path)
     with Key_error _ -> None
 
-  let find_or ~default:default accessor value path =
-    find_opt accessor value path |> Option.value ~default:default
+  let find_or ~default:default value accessor path =
+    find_opt value accessor path |> Option.value ~default:default
 
-  let find_result accessor value path =
-    try Ok (find accessor value path)
+  let find_result value accessor path =
+    try Ok (find value accessor path)
     with
     | Key_error msg -> Error msg
     | Type_error msg -> Error msg
