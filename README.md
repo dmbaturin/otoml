@@ -44,7 +44,7 @@ val t : Otoml.t =
       [("basic", Otoml.TomlTable [("crash_randomly", Otoml.TomlBoolean true)])])]
 
 (* Look up a deeply nested value with a known type. *)
-utop # Otoml.find Otoml.get_boolean t ["settings"; "basic"; "crash_randomly"] ;;
+utop # Otoml.find t Otoml.get_boolean ["settings"; "basic"; "crash_randomly"] ;;
 - : bool = true
 
 (* Update a deeply nested value. *)
@@ -56,7 +56,7 @@ val t : Otoml.t =
       [("basic", Otoml.TomlTable [("crash_randomly", Otoml.TomlInteger 0)])])]
 
 (* Look up a value and convert it to desired type (if possible). *)
-utop # Otoml.find (Otoml.get_boolean ~strict:false) t ["settings"; "basic"; "crash_randomly"] ;;
+utop # Otoml.find t (Otoml.get_boolean ~strict:false) ["settings"; "basic"; "crash_randomly"] ;;
 - : bool = false
 
 (* There's a pretty-printer, too! *)
