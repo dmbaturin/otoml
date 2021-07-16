@@ -102,6 +102,14 @@ module type TomlImplementation = sig
   val get_float : ?strict:bool -> t -> toml_float
   val get_boolean : ?strict:bool -> t -> bool
 
+  val get_offset_datetime : t -> toml_date
+  val get_local_datetime : t -> toml_date
+  val get_datetime : t -> toml_date
+  val get_local_date : t -> toml_date
+  val get_date : t -> toml_date
+  val get_local_time : t -> toml_date
+
+
   (** High-level interface *)
 
   val list_table_keys : t -> string list

@@ -183,6 +183,7 @@ module Base : sig
     (** Accessors *)
 
     val get_value : t -> t
+
     val get_table : t -> (string * t) list
 
     (** In non-strict mode, forces a value [x] to a single-item array [[x]] *) 
@@ -192,6 +193,13 @@ module Base : sig
     val get_integer : ?strict:bool -> t -> toml_integer
     val get_float : ?strict:bool -> t -> toml_float
     val get_boolean : ?strict:bool -> t -> bool
+
+    val get_offset_datetime : t -> toml_date
+    val get_local_datetime : t -> toml_date
+    val get_datetime : t -> toml_date
+    val get_local_date : t -> toml_date
+    val get_date : t -> toml_date
+    val get_local_time : t -> toml_date
 
     (** High-level interface *)
 

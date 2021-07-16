@@ -143,6 +143,40 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 
   let get_value t = t
 
+  let get_offset_datetime t =
+    match t with
+    | TomlOffsetDateTime dt -> dt
+    | _ -> Printf.ksprintf type_error "value must be an offset datetime, found a %s" (type_string t)
+
+  let get_local_datetime t =
+    match t with
+    | TomlLocalDateTime dt -> dt
+    | _ -> Printf.ksprintf type_error "value must be a local datetime, found a %s" (type_string t)
+
+  let get_datetime t =
+    match t with
+    | TomlOffsetDateTime dt -> dt
+    | TomlLocalDateTime dt -> dt
+    | _ -> Printf.ksprintf type_error "value must be a datetime, found a %s" (type_string t)
+
+  let get_local_date t =
+    match t with
+    | TomlLocalDate dt -> dt
+    | _ -> Printf.ksprintf type_error "value must be a local date, found a %s" (type_string t)
+
+  let get_date t =
+    match t with
+    | TomlOffsetDateTime dt -> dt
+    | TomlLocalDateTime dt -> dt
+    | TomlLocalDate dt -> dt
+    | _ -> Printf.ksprintf type_error "value must be a date or datetime, found a %s" (type_string t)
+
+  let get_local_time t =
+    match t with
+    | TomlLocalTime dt -> dt
+    | _ -> Printf.ksprintf type_error "value must be a local time, found a %s" (type_string t)
+
+
   (* High-level interfaces *)
 
   let list_table_keys t =
