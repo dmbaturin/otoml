@@ -6,9 +6,10 @@ In short:
 
 * TOML 1.0-compliant.
 * Transparent (no abstract types).
-* Preserves original concrete syntax (e.g. inline vs normal table) when parsing and printing.
+* Easy access to deeply nested values.
+* Preserves original syntax variant (e.g. inline vs normal table) when parsing and printing.
 * Flexible pretty-printing options.
-* Does not force a calendar library dependency on you (you can plug your own into the functor).
+* Does not force a calendar or bignum library dependency on you (you can plug your own into the functor).
 
 ## Goals
 
@@ -70,17 +71,24 @@ utop # let t = Otoml.Parser.from_string "[foo] \n [foo.bar] \n baz = {quux = fal
 val t : unit = ()
 ```
 
-## Plugging your own dependencies
+## Bring your own dependencies
+
+The TOML specification requires support for datetime values and arbitrary large numbers.
+For a language that uses machine types and doesn't have datetime support in the standrad library,
+it means that implementations have to make a choice whether to be light on dependencies and easy to use
+or be standard-compliant.
+
+OTOML solves that problem with OCaml functors.
 
 The default implementation is provided for convenience: it represents integer and floating point numbers
 with OCaml's native `int` and `float` types, and stores date/time values as strings
 that you can parse with your favorite calendar library.
 
-However, it's not hardcoded but built with an OCaml functor.
+However, it's not hardcoded but built with a functor.
 This is how you could assemble the default implementation yourself.
 
 ```ocaml
-module DefaultToml = Otoml.Base.Make (Otoml.Base.NativeInteger) (Otoml.Base.NativeFloat) (Otoml.Base.StringDate)
+module DefaultToml = Otoml.Base.Make (Otoml.Base.OCamlInteger) (Otoml.Base.OCamlFloat) (Otoml.Base.StringDate)
 ```
 
 Thus you can replace any of the modules or all of them with your own.
@@ -105,16 +113,19 @@ module MyToml = Otoml.Base.Make (BigInteger) (Otoml.Base.OCamlFloat) (Otoml.Base
 
 ## Deviations from the TOML 1.0 specification
 
+The default implementation is not completely compliant with the standard. These are the deviations:
+
 >Arbitrary 64-bit signed integers (from −2^63 to 2^63−1) should be accepted and handled losslessly.
 >If an integer cannot be represented losslessly, an error must be thrown.
 
-OTOML uses OCaml's native integer type, which is 63-bit on 64-bit architectures and 31-bit on 32-bit ones.
+The default implementation uses OCaml's native integer type, which is 63-bit on 64-bit architectures and 31-bit on 32-bit ones.
 
 >To unambiguously represent a specific instant in time, you may use an RFC 3339 formatted date-time with offset.
 >Millisecond precision is required. Further precision of fractional seconds is implementation-specific.
 
 The default implementation does not interpret datetime values at all,
 only checks them for superficial validity and returns as strings.
-(e.g. 1993-09-947 is considered invalid, but 1993-02-29 is valid despite the fact that 1993 wasn't a leap year).
+
+For example, "1993-09-947" is considered invalid (as expected), but 1993-02-29 is valid despite the fact that 1993 wasn't a leap year.
 
 Thus, actual precision depends on the library you use to parse those date strings or plug into the functor.
