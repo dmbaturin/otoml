@@ -1,5 +1,7 @@
 # OTOML
 
+![CI](https://github.com/dmbaturin/otoml/actions/workflows/main.yml/badge.svg)
+
 A TOML parsing and manipulation library for OCaml.
 
 In short:
