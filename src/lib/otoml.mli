@@ -216,9 +216,9 @@ module Base : sig
     val update : ?use_inline_tables:bool -> t -> string list -> t option -> t
   end
 
-  module OCamlInteger : TomlInteger
-  module OCamlFloat : TomlFloat
-  module StringDate : TomlDate
+  module OCamlInteger : TomlInteger with type t = Int.t
+  module OCamlFloat : TomlFloat with type t = Float.t
+  module StringDate : TomlDate with type t = string
 
   module Make (I : TomlInteger) (F : TomlFloat) (D : TomlDate) : 
     TomlImplementation with type toml_integer = I.t and type toml_float = F.t and type toml_date = D.t
