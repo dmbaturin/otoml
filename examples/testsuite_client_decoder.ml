@@ -1,7 +1,36 @@
 (* This is a client executable for the https://github.com/BurntSushi/toml-test TOML test suite.
 
-   Compile with: ocamlfind ocamlopt -package otoml,yojson -linkpkg ./examples/testsuite_client_decoder.ml -o decoder
+   Compile with: ocamlfind ocamlopt -package otoml,zarith,decimal,yojson -linkpkg ./examples/testsuite_client_decoder.ml -o decoder
  *)
+
+
+(* No signature ascriptions: something like
+   `module BigInteger : Otoml.Base.TomlInteger` would make the type t abstract,
+   which is inconvenient.
+ *)
+
+module BigInteger = struct
+  type t = Z.t
+  let of_string = Z.of_string
+  let to_string = Z.to_string
+  let of_boolean b = if b then Z.one else Z.zero
+  let to_boolean n = (n <> Z.zero)
+end
+
+module BigFloat = struct
+  type t = Decimal.t
+  (* Can't just reuse Decimal.to/of_string because their optional arguments
+     would cause a signature mismatch. *)
+  let of_string s = Decimal.of_string s
+
+  (* Decimal.to_string uses "NaN" spelling
+     while TOML requires all special float values to be lowercase. *)
+  let to_string x = Decimal.to_string x |> String.lowercase_ascii
+  let of_boolean b = if b then Decimal.one else Decimal.zero
+  let to_boolean x = (x <> Decimal.zero)
+end
+
+module Otoml = Otoml.Base.Make (BigInteger) (BigFloat) (Otoml.Base.StringDate)
 
 open Otoml
 
@@ -34,8 +63,8 @@ let rec to_json t =
 and json_of_value v =
   let typ = ("type", `String (type_string v)) in
   match v with
-  | TomlInteger i -> `Assoc [typ; "value", `String (string_of_int i)]
-  | TomlFloat f -> `Assoc [typ; "value", `String (string_of_float f)]
+  | TomlInteger i -> `Assoc [typ; "value", `String (BigInteger.to_string i)]
+  | TomlFloat f -> `Assoc [typ; "value", `String (BigFloat.to_string f)]
   | TomlString s -> `Assoc [typ; "value", `String (s)]
   | TomlBoolean b -> `Assoc [typ; "value", `String (string_of_bool b)]
   | TomlLocalTime s -> `Assoc [typ; "value", `String (s)]
