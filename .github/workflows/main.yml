@@ -6,9 +6,9 @@ name: CI
 # events but only for the master branch
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -35,12 +35,12 @@ jobs:
         opam install -y --deps-only .
         # These dependencies are only required for the test suite client,
         # not the the library itself
-        opem install -y yojson zarith decimal ocamlfind
+        opam install -y yojson zarith decimal ocamlfind
 
     - name: Build and install the library
       run: |
         eval $(opam env)
-        opam pin add .
+        opam -y pin add .
 
     - name: Run the TOML test suite
       env:
@@ -49,9 +49,9 @@ jobs:
       run: |
         eval $(opam env)
         # Compile the test suite client decoder binary
-        ocamlfind ocamlopt -package otoml,zarith,decimal,yojson -linkpkg ./examples/testsuite_client_decoder.ml -o decoder        
+        ocamlfind ocamlopt -package otoml,zarith,decimal,yojson -linkpkg ./examples/testsuite_client_decoder.ml -o decoder
         # Download the test suite runner
         wget https://github.com/BurntSushi/toml-test/releases/download/$TESTSUITE_VERSION/toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
         gunzip toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
         chmod +x toml-test-$TESTSUITE_VERSION-$PLATFORM
-        toml-test-$TESTSUITE_VERSION-$PLATFORM decoder
+        ./toml-test-$TESTSUITE_VERSION-$PLATFORM ./decoder
