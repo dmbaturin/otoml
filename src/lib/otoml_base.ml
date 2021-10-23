@@ -234,6 +234,12 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     | Key_error msg -> Error msg
     | Type_error msg -> Error msg
 
+  let path_exists value path =
+    let res = find_opt value get_value path in
+    match res with
+    | Some _ -> true
+    | None -> false
+
   let update_field value key new_value =
     let rec update assoc key value =
       match assoc with

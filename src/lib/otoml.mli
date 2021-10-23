@@ -86,6 +86,8 @@ val find_or : default:'a -> t -> (t -> 'a) -> string list -> 'a
 
 val find_result : t -> (t -> 'a) -> string list -> ('a, string) result
 
+val path_exists : t -> string list -> bool
+
 val update : ?use_inline_tables:bool -> t -> string list -> t option -> t
 
 module Base : sig
