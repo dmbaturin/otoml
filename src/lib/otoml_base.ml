@@ -12,31 +12,36 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
   type toml_date = D.t
 
   type t =
-  | TomlString of string
-  | TomlInteger of toml_integer
-  | TomlFloat of toml_float
-  | TomlBoolean of bool
-  | TomlOffsetDateTime of toml_date
-  | TomlLocalDateTime of toml_date
-  | TomlLocalDate of toml_date
-  | TomlLocalTime of toml_date
-  | TomlArray of t list
-  | TomlTable of (string * t) list
-  | TomlInlineTable of (string * t) list
-  | TomlTableArray of t list
+    | TomlString of string
+    | TomlInteger of toml_integer
+    | TomlFloat of toml_float
+    | TomlBoolean of bool
+    | TomlOffsetDateTime of toml_date
+    | TomlLocalDateTime of toml_date
+    | TomlLocalDate of toml_date
+    | TomlLocalTime of toml_date
+    | TomlArray of t list
+    | TomlTable of (string * t) list
+    | TomlInlineTable of (string * t) list
+    | TomlTableArray of t list
 
   let type_string v =
     match v with
-    | TomlString _ -> "string"
-    | TomlInteger _ -> "integer"
-    | TomlFloat _ -> "float"
-    | TomlBoolean _ -> "boolean"
-    | TomlLocalTime _ -> "local time"
-    | TomlLocalDate _ -> "local date"
-    | TomlLocalDateTime _ -> "local date-time"
+    | TomlString _         -> "string"
+    | TomlInteger _        -> "integer"
+    | TomlFloat _          -> "float"
+    | TomlBoolean _        -> "boolean"
+    | TomlLocalTime _      -> "local time"
+    | TomlLocalDate _      -> "local date"
+    | TomlLocalDateTime _  -> "local date-time"
     | TomlOffsetDateTime _ -> "offset date-time"
-    | TomlArray _ | TomlTableArray _ -> "array"
-    | TomlTable _ | TomlInlineTable _ -> "table"
+    (* For the purpose of type error printing,
+       we don't make a difference between syntactic variants
+       because there's no cases when that would matter. *)
+    | TomlArray _          -> "array"
+    | TomlTableArray _     -> "array"
+    | TomlTable _          -> "table"
+    | TomlInlineTable _    -> "table"
 
 
   (* Conversions between different variants of the same type. *)
@@ -87,7 +92,7 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     | TomlString s -> s
     | _ ->
       begin
-	if strict then Printf.ksprintf type_error "value must be a string, found a %s" (type_string t) else
+	if strict then Printf.ksprintf type_error "value must be a string, found %s" (type_string t) else
 	match t with
 	| TomlInteger i -> I.to_string i
 	| TomlFloat f -> F.to_string f
@@ -112,7 +117,7 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     | TomlFloat f -> f
     | _ ->
       begin
-        if strict then Printf.ksprintf type_error "value must be an float, found %s" (type_string t) else
+        if strict then Printf.ksprintf type_error "value must be a float, found %s" (type_string t) else
         match t with
         | TomlString s -> F.of_string s
         | TomlBoolean b -> F.of_boolean b
@@ -124,7 +129,7 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     | TomlBoolean b -> b
     | _ ->
       begin
-	if strict then Printf.ksprintf type_error "value must be n boolean, found a %s" (type_string t) else
+	if strict then Printf.ksprintf type_error "value must be a boolean, found %s" (type_string t) else
 	match t with
 	| TomlString s -> (s = "")
 	| TomlInteger i -> I.to_boolean i
@@ -146,35 +151,35 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
   let get_offset_datetime t =
     match t with
     | TomlOffsetDateTime dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be an offset datetime, found a %s" (type_string t)
+    | _ -> Printf.ksprintf type_error "value must be an offset datetime, found %s" (type_string t)
 
   let get_local_datetime t =
     match t with
     | TomlLocalDateTime dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be a local datetime, found a %s" (type_string t)
+    | _ -> Printf.ksprintf type_error "value must be a local datetime, found %s" (type_string t)
 
   let get_datetime t =
     match t with
     | TomlOffsetDateTime dt -> dt
     | TomlLocalDateTime dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be a datetime, found a %s" (type_string t)
+    | _ -> Printf.ksprintf type_error "value must be a datetime, found %s" (type_string t)
 
   let get_local_date t =
     match t with
     | TomlLocalDate dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be a local date, found a %s" (type_string t)
+    | _ -> Printf.ksprintf type_error "value must be a local date, found %s" (type_string t)
 
   let get_date t =
     match t with
     | TomlOffsetDateTime dt -> dt
     | TomlLocalDateTime dt -> dt
     | TomlLocalDate dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be a date or datetime, found a %s" (type_string t)
+    | _ -> Printf.ksprintf type_error "value must be a date or datetime, found %s" (type_string t)
 
   let get_local_time t =
     match t with
     | TomlLocalTime dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be a local time, found a %s" (type_string t)
+    | _ -> Printf.ksprintf type_error "value must be a local time, found %s" (type_string t)
 
 
   (* High-level interfaces *)
@@ -182,7 +187,7 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
   let list_table_keys t =
     let t =
       try get_table t
-      with Type_error msg -> Printf.ksprintf type_error "cannot list keys: %s" msg
+      with Type_error msg -> Printf.ksprintf type_error "cannot list table keys: %s" msg
     in
     List.fold_left (fun acc (x, _) -> x :: acc) [] t |> List.rev
 
@@ -218,7 +223,7 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     | Key_error msg ->
       Printf.ksprintf key_error "Failed to retrieve a value at %s: %s" (make_dotted_path path) msg
     | Type_error msg ->
-      Printf.ksprintf type_error "TOML type error occured while trying to retrieve a value at %s: %s"
+      Printf.ksprintf type_error "Unexpected TOML value type at key %s: %s"
 	(make_dotted_path path) msg
 
   let find_opt value accessor path =
@@ -231,14 +236,14 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
   let find_result value accessor path =
     try Ok (find value accessor path)
     with
-    | Key_error msg -> Error msg
+    | Key_error msg  -> Error msg
     | Type_error msg -> Error msg
 
   let path_exists value path =
     let res = find_opt value get_value path in
     match res with
     | Some _ -> true
-    | None -> false
+    | None   -> false
 
   let update_field value key new_value =
     let rec update assoc key value =
@@ -294,8 +299,9 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       String.make (settings.indent_width * level) settings.indent_character
 
     let has_nontable_items t =
-      (* Headers of empty tables _must_ be displayed,
-         so for the purpose of collapsing tables for readability,
+      (* Headers of empty tables _must_ be displayed
+         (since "table exists and has no items" and "table does not exist" are different conditions),
+         so for the purpose of collapsing tables to improve readability,
          an empty table is _not_ collapsible.
        *)
       if t = [] then true else
@@ -702,9 +708,3 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       | Failure err -> Error (Printf.sprintf "otoml internal error: %s" err)
  end
 end
-
-
-
-
-
-
