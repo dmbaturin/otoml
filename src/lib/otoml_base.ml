@@ -139,12 +139,12 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 	| _ -> false
       end
 
-  let get_array ?(strict=true) t =
+  let get_array ?(strict=true) accessor t =
     match t with
-    | TomlArray a | TomlTableArray a -> a
+    | TomlArray a | TomlTableArray a -> List.map accessor a
     | _ as v ->
       if strict then Printf.ksprintf type_error "value must be an array, found %s" (type_string t)
-      else [v]
+      else List.map accessor [v]
 
   let get_value t = t
 

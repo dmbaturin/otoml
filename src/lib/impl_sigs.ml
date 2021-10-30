@@ -95,7 +95,7 @@ module type TomlImplementation = sig
   val get_table : t -> (string * t) list
 
   (** In non-strict mode, forces a value [x] to a single-item array [[x]] *) 
-  val get_array : ?strict:bool -> t -> t list
+  val get_array : ?strict:bool -> (t -> 'a) -> t -> 'a list
 
   val get_string : ?strict:bool -> t -> string
   val get_integer : ?strict:bool -> t -> toml_integer
