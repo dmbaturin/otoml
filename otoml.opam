@@ -15,6 +15,7 @@ depends: [
   "menhirLib" {>= "20200525"}
   "dune" {>= "2.0.0"}
   "uutf" {>= "1.0.0"}
+  "ounit2" {with-test}
 ]
 synopsis: "TOML parsing, manipulation, and pretty-printing library (1.0.0-compliant)"
 description: """
