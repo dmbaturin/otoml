@@ -29,14 +29,6 @@ jobs:
         brew install ocaml opam
         opam init -y
 
-    - name: Install OCaml dependencies from opam
-      run: |
-        echo Installing OCaml dependencies
-        opam install -y --deps-only .
-        # These dependencies are only required for the test suite client,
-        # not the the library itself
-        opam install -y yojson zarith decimal ocamlfind
-
     - name: Build and install the library
       run: |
         eval $(opam env)
@@ -48,8 +40,13 @@ jobs:
         PLATFORM: darwin-amd64
       run: |
         eval $(opam env)
+
+        # These dependencies are only required for the test suite client, not the library itself
+        opam install -y yojson zarith decimal ocamlfind
+
         # Compile the test suite client decoder binary
         ocamlfind ocamlopt -package otoml,zarith,decimal,yojson -linkpkg ./examples/testsuite_client_decoder.ml -o decoder
+
         # Download the test suite runner
         wget https://github.com/BurntSushi/toml-test/releases/download/$TESTSUITE_VERSION/toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
         gunzip toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
