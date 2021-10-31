@@ -26,8 +26,8 @@ let escape_string ?(exclude=[]) s =
       let char_code = Char.code c in
       let char_str =
         (* The TOML spec only allows escapes of the form \uXXXX or \uXXXXXXXX *)
-        if char_code > 0xFFFF then Printf.sprintf "%08x" char_code
-        else Printf.sprintf "%04x" char_code
+        if char_code > 0xFFFF then Printf.sprintf "\\u%08x" char_code
+        else Printf.sprintf "\\u%04x" char_code
       in add char_str
     | _ -> Buffer.add_char buf c
   in
