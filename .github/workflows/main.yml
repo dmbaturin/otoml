@@ -44,11 +44,13 @@ jobs:
         # These dependencies are only required for the test suite client, not the library itself
         opam install -y yojson zarith decimal ocamlfind
 
-        # Compile the test suite client decoder binary
+        # Compile the test suite client executables
         ocamlfind ocamlopt -package otoml,zarith,decimal,yojson -linkpkg ./examples/testsuite_client_decoder.ml -o decoder
+        ocamlfind ocamlopt -package otoml,zarith,decimal,yojson -linkpkg ./examples/testsuite_client_encoder.ml -o encoder
 
         # Download the test suite runner
         wget https://github.com/BurntSushi/toml-test/releases/download/$TESTSUITE_VERSION/toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
         gunzip toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
         chmod +x toml-test-$TESTSUITE_VERSION-$PLATFORM
         ./toml-test-$TESTSUITE_VERSION-$PLATFORM ./decoder
+        ./toml-test-$TESTSUITE_VERSION-$PLATFORM -skip "valid/float/zero" -encoder ./encoder
