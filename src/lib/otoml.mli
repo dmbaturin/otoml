@@ -26,12 +26,12 @@ type t =
 module Printer : sig
   val to_string :
     ?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool ->
-    ?newline_before_table:bool -> ?collapse_tables:bool ->
+    ?newline_before_table:bool -> ?collapse_tables:bool -> ?force_table_arrays:bool ->
     t -> string
 
   val to_channel :
     ?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool ->
-    ?newline_before_table:bool -> ?collapse_tables:bool ->
+    ?newline_before_table:bool -> ?collapse_tables:bool -> ?force_table_arrays:bool ->
     out_channel -> t -> unit
 end
 
@@ -147,12 +147,12 @@ module Base : sig
     module Printer : sig
       val to_string :
 	?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool ->
-	?newline_before_table:bool -> ?collapse_tables:bool ->
+	?newline_before_table:bool -> ?collapse_tables:bool -> ?force_table_arrays:bool ->
 	t -> string
 
       val to_channel :
 	?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool ->
-	?newline_before_table:bool -> ?collapse_tables:bool ->
+	?newline_before_table:bool -> ?collapse_tables:bool -> ?force_table_arrays:bool ->
 	out_channel -> t -> unit
     end
 

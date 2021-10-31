@@ -339,6 +339,21 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       if t = [] then true else
       List.fold_left (fun acc (_, v) -> (match v with TomlTable _ -> false | _ -> true) || acc) false t
 
+    let is_table_array t =
+      if t = [] then false else
+      List.fold_left (fun acc v -> (match v with TomlTable _ | TomlInlineTable _ -> true | _ -> false) && acc) true t
+
+    let rec _force_table_arrays t =
+      match t with
+      | TomlArray vs ->
+        if (is_table_array vs) then
+          let vs = List.map _force_table_arrays vs in
+          TomlTableArray (List.map inline_to_table vs)
+        else TomlArray vs
+      | TomlTable kvs ->
+        TomlTable (List.map (fun (k, v) -> (k, _force_table_arrays v)) kvs)
+      | _ -> t
+
     let rec format_primitive ?(table_path=[]) ?(inline=false) ?(table_array=false) ?(indent=true) ?(indent_level=0) settings callback v =
       match v with
       | TomlString s ->
@@ -452,7 +467,8 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 	format_primitive ~table_path:table_path ~indent:indent settings callback v;
 	if not inline then callback "\n"
 
-    let to_string ?(indent_width=2) ?(indent_character=' ') ?(indent_subtables=false) ?(newline_before_table=true) ?(collapse_tables=false) v =
+    let to_string ?(indent_width=2) ?(indent_character=' ') ?(indent_subtables=false)
+                  ?(newline_before_table=true) ?(collapse_tables=false) ?(force_table_arrays=false) v =
       let settings = {
 	indent_width = indent_width;
 	indent_character = indent_character;
@@ -462,10 +478,12 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       }
       in
       let buf = Buffer.create 4096 in
+      let v = if force_table_arrays then _force_table_arrays v else v in
       let () = format_primitive settings (Buffer.add_string buf) v in
       Buffer.contents buf
 
-    let to_channel ?(indent_width=2) ?(indent_character=' ') ?(indent_subtables=false) ?(newline_before_table=true) ?(collapse_tables=false) chan v =
+    let to_channel ?(indent_width=2) ?(indent_character=' ') ?(indent_subtables=false)
+                   ?(newline_before_table=true) ?(collapse_tables=false) ?(force_table_arrays=false) chan v =
       let settings = {
 	indent_width = indent_width;
 	indent_character = indent_character;
@@ -474,6 +492,7 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
         collapse_tables= collapse_tables
       }
       in
+      let v = if force_table_arrays then _force_table_arrays v else v in
       format_primitive settings (output_string chan) v
   end
 
