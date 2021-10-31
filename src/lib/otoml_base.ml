@@ -6,6 +6,20 @@ end
 
 include Impl_sigs
 
+(* Internal exception for tracking non-existent fields.
+   Since it's possible to query a full path like "table.subtable.field",
+   error messages should tell the user which exact component of that path
+   does not exist.
+   So field lookup functions will raise this exception to signal bad field,
+   and the public interface will convert it to a complete Key_error. *)
+exception Field_error of string
+
+(* Raised by lookup functions when the TOML value given to them
+   is not a table at all and can't have fields;
+   to differentiate from a situation when the target value exists,
+   but it's type is wrong for the accessor function passed by the user. *)
+exception Not_a_table of string
+
 module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
   type toml_integer = I.t
   type toml_float = F.t
@@ -191,18 +205,19 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     in
     List.fold_left (fun acc (x, _) -> x :: acc) [] t |> List.rev
 
+  let _field k t =
+    begin
+      let t = get_table t in
+      let res = List.assoc_opt k t in
+      match res with
+      | Some res -> res
+      | None -> raise (Field_error k)
+    end
+
   let field k t =
-    try
-      begin
-	let t = get_table t in
-	let res = List.assoc_opt k t in
-	match res with
-	| Some res -> res
-	| None -> Printf.ksprintf key_error "field \"%s\" not found" k
-      end
-    with
-    | Key_error msg -> Printf.ksprintf key_error "cannot retrieve field \"%s\": %s" k msg
-    | Type_error msg -> Printf.ksprintf type_error "cannot retrieve field \"%s\": %s" k msg
+    try _field k t
+    with Field_error msg -> Printf.ksprintf key_error "field \"%s\" not found"
+      (Utils.make_printable_key k) msg
 
   let field_opt k t =
     try Some (field k t)
@@ -210,18 +225,34 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 
   let find value accessor path =
     let make_dotted_path ps = Utils.string_of_path ps in
+    let check_if_table k v =
+      match v with
+      | TomlTable _ -> ()
+      | _ as v ->
+        Printf.ksprintf (fun s -> raise (Not_a_table s)) "value at field \"%s\" is %s, not a table"
+          (Utils.make_printable_key k) (type_string v)
+    in
     let rec aux accessor path value =
       match path with
       | [] -> accessor value
       | p :: ps ->
-	let value = field p value in
+        let _ = check_if_table p value in
+	let value = _field p value in
 	aux accessor ps value
     in
     try
       aux accessor path value
     with
-    | Key_error msg ->
-      Printf.ksprintf key_error "Failed to retrieve a value at %s: %s" (make_dotted_path path) msg
+    | Field_error msg ->
+      (* The Field_error will contain the first non-existent field in the path.
+         E.g. trying to find [table.subtable.no_such_field] should produce
+         "Failed to retrieve ... "table.subtable.bad_field": field "bad_field" not found" *)
+      Printf.ksprintf key_error "Failed to retrieve a value at %s: field %s not found"
+        (make_dotted_path path) (Utils.make_printable_key msg)
+    | Not_a_table k ->
+      (* Something in the middle of the path isn't a table,
+         or path is too long. *)
+      Printf.ksprintf key_error "Failed to retrieve a value at %s: %s" (make_dotted_path path) k
     | Type_error msg ->
       Printf.ksprintf type_error "Unexpected TOML value type at key %s: %s"
 	(make_dotted_path path) msg
@@ -266,7 +297,8 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     match value with
     | TomlTable fs -> TomlTable (update fs key new_value)
     | TomlInlineTable fs -> TomlInlineTable (update fs key new_value)
-    | _ -> Printf.ksprintf key_error "cannot update field %s: value is %s, not a table" key (type_string value)
+    | _ -> Printf.ksprintf key_error "cannot update field %s: value is %s, not a table"
+      (Utils.make_printable_key key) (type_string value)
 
   let rec update ?(use_inline_tables=false) value path new_value =
     let make_empty_table use_inline =
