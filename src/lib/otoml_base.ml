@@ -339,6 +339,17 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       if t = [] then true else
       List.fold_left (fun acc (_, v) -> (match v with TomlTable _ -> false | _ -> true) || acc) false t
 
+    let reorder_items t =
+      let rec aux acc_items acc_tbls vs =
+        match vs with
+        | [] -> (List.rev acc_items) @ (List.rev acc_tbls)
+        | (k, v) :: vs' ->
+          begin match v with
+          | TomlTable _ -> aux acc_items ((k, v) :: acc_tbls) vs'
+          | _ -> aux ((k, v) :: acc_items) acc_tbls vs'
+          end
+       in aux [] [] t
+
     let is_table_array t =
       if t = [] then false else
       List.fold_left (fun acc v -> (match v with TomlTable _ | TomlInlineTable _ -> true | _ -> false) && acc) true t
@@ -402,6 +413,7 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 	a;
 	callback "]"
       | TomlTable t ->
+        let t = reorder_items t in
         let is_shell_table = has_nontable_items t in
 	let () =
 	  if (table_path <> []) && (not settings.collapse_tables || is_shell_table) then begin
