@@ -8,7 +8,9 @@ In short:
 
 * TOML 1.0-compliant.
 * Transparent (no abstract types).
+* Uses immutable data structures.
 * Easy access to deeply nested values.
+* Preserves the order of fields in tables.
 * Preserves original syntax variant (e.g. inline vs normal table) when parsing and printing.
 * Flexible pretty-printing options.
 * Does not force a calendar or bignum library dependency on you (you can plug your own into the functor).
