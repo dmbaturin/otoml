@@ -1,6 +1,7 @@
 include Common
 
 module Base = struct
+  include Common
   include Impl_sigs
   include Default_impl
 

@@ -37,6 +37,10 @@ module type TomlImplementation = sig
   type toml_float
   type toml_date
 
+  exception Key_error of string
+  exception Type_error of string
+  exception Parse_error of ((int * int) option * string)
+
   type t =
   | TomlString of string
   | TomlInteger of toml_integer

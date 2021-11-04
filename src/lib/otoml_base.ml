@@ -21,6 +21,8 @@ exception Field_error of string
 exception Not_a_table of string
 
 module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
+  include Common
+
   type toml_integer = I.t
   type toml_float = F.t
   type toml_date = D.t
