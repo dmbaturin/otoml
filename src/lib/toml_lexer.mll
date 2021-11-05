@@ -159,41 +159,39 @@ let move_position lexbuf n =
  *)
 
 type context = ConValue | ConInlineTable | ConInlineTableValue | ConArray
-let context_stack : (context list) ref = ref []
 
-let in_top_level () =
-  !context_stack = []
+let in_top_level state =
+  state = []
 
-let in_value () =
-  match !context_stack with
+let in_value state =
+  match state with
   | ConValue :: _ -> true
   | _ -> false
 
-let in_array () =
-  match !context_stack with
+let in_array state =
+  match state with
   | ConArray :: _ -> true
   | _ -> false
 
-let in_inline_table () =
-  match !context_stack with
+let in_inline_table state =
+  match state with
   | ConInlineTable :: _ -> true
   | _ -> false
 
-let in_inline_table_value () =
-  match !context_stack with
+let in_inline_table_value state =
+  match state with
   | ConInlineTableValue :: _ -> true
   | _ -> false
 
-let exit_context () =
-  let cs = !context_stack in
-  match cs with
+let exit_context state =
+  match state with
   | [] -> failwith "Lexer is trying to exit the top level context"
-  | _ :: cs' -> context_stack := cs'
+  | _ :: cs' -> cs'
 
-let enter_value () = context_stack := (ConValue :: !context_stack)
-let enter_array () = context_stack := (ConArray :: !context_stack)
-let enter_inline_table () = context_stack := (ConInlineTable :: !context_stack)
-let enter_inline_table_value () = context_stack := (ConInlineTableValue :: !context_stack)
+let enter_value state = ConValue :: state
+let enter_array state = ConArray :: state
+let enter_inline_table state = ConInlineTable :: state
+let enter_inline_table_value state = ConInlineTableValue :: state
 
 }
 
@@ -290,49 +288,49 @@ let t_unicode =
 
 let t_invalid_escape = '\\' ([^ ' ' '\t' '\r' '\n' 'b' 'n' 'f' 'r' 't' '\\'] as invalid_escape_char)
 
-rule token = parse
+rule token state = parse
 (* Whitespace *)
 | ('\n' | '\r' '\n')
   {
     (* The only universal statement about newlines -- they increase the line counter. *)
     Lexing.new_line lexbuf;
 
-    match !context_stack with
+    match state with
     | (ConInlineTable :: _) | (ConInlineTableValue :: _) ->
       (* Inside inline tables, newlines shouldn't occur at all. *)
       lexing_error lexbuf "line breaks are not allowed inside inline tables"
     | ConArray :: _ ->
       (* Inside arrays, newlines don't matter at all. *)
-      token lexbuf
+      token state lexbuf
     | ConValue :: _ ->
       (* In the value context, a newline means we are back to the top level context,
-         so we emit a NEWLINE token to let the parser use it as a key/value pair separator. *)
-      let () = exit_context () in
-      NEWLINE
+         so we exit the old context and emit a NEWLINE token
+         to let the parser use it as a key/value pair separator. *)
+      let state = exit_context state in
+      (state, NEWLINE)
     | [] ->
       (* In the top level context, we just emit a newline as a statement terminator
          (it may terminate a table header ([table], [[tarray]]) or an empty statement. *)
-      NEWLINE 
+      (state, NEWLINE)
  }
 | [' ' '\t']
-  { token lexbuf }
+  { token state lexbuf }
 (* Punctuation *)
 | "="
   {
-    let () =
-      if in_top_level () then enter_value ()
-      else if in_inline_table () then enter_inline_table_value ()
+    let state =
+      if in_top_level state then enter_value state
+      else if in_inline_table state then enter_inline_table_value state else state
     in
-    EQ 
+    (state, EQ)
   }
 | '{'
   {
-    let () = enter_inline_table () in
-    LEFT_BRACE
+    let state = enter_inline_table state in
+    (state, LEFT_BRACE)
   }
 | '}'
   {
-    let () =
       (* If we were in the last value of that table,
          we need to exit both the value context and the parent inline table context.
 
@@ -341,12 +339,12 @@ rule token = parse
          If that happens, best we can do is to return the token to the parser,
          since it can't possibly be a valid syntax.
        *)
-      try
-        if in_inline_table_value () then (exit_context (); exit_context())
-        else exit_context ()
-      with Failure _ -> ()
+      let state = try
+        if in_inline_table_value state then (let state = exit_context state in exit_context state)
+        else exit_context state
+      with Failure _ -> state
     in
-    RIGHT_BRACE
+    (state, RIGHT_BRACE)
   }
 | '[' '['
   {
@@ -363,74 +361,79 @@ rule token = parse
        Thus we need to make sure to correctly emit two left square bracket tokens
        when we see `[[` character sequence in a value context.
      *)
-    if in_top_level () then TABLE_ARRAY_HEADER_START
-    else let () = enter_array (); move_position lexbuf (~-1) in ARRAY_START
+    if in_top_level state then (state, TABLE_ARRAY_HEADER_START) else
+    let state = enter_array state in
+    let () =  move_position lexbuf (~-1) in
+    (state, ARRAY_START)
   }
 | ']' ']'
   {
-    if in_top_level () then TABLE_ARRAY_HEADER_END else
-    if not (in_array ()) then lexing_error lexbuf "stray closing square bracket (])"
-    else let () = exit_context (); move_position lexbuf (~-1) in ARRAY_END
+    if in_top_level state then (state, TABLE_ARRAY_HEADER_END) else
+    if not (in_array state) then lexing_error lexbuf "stray closing square bracket (])" else
+    let state = exit_context state in
+    let () =  move_position lexbuf (~-1) in
+    (state, ARRAY_END)
   }
 | '['
   {
-    if in_top_level () then TABLE_HEADER_START
-    else let () = enter_array () in ARRAY_START
+    if in_top_level state then (state, TABLE_HEADER_START) else
+    let state = enter_array state in
+    (state, ARRAY_START)
   }
 | ']'
   {
-    if in_top_level () then TABLE_HEADER_END else
-    let () = if in_array () then exit_context () in
-    ARRAY_END
+    if in_top_level state then (state, TABLE_HEADER_END) else
+    let state = if in_array state then exit_context state else state in
+    (state, ARRAY_END)
   }
-| '.' { DOT }
+| '.' { (state, DOT) }
 | ','
   {
-    let () = if in_inline_table_value () then exit_context () in
-    COMMA
+    let state = if in_inline_table_value state then exit_context state else state in
+    (state, COMMA)
   }
 (* Primitive values *)
 | t_time as t
   {
-    if valid_time hours minutes seconds then LOCAL_TIME(t) else
+    if valid_time hours minutes seconds then (state, LOCAL_TIME(t)) else
     lexing_error lexbuf @@ Printf.sprintf "%s is not a valid time" t
   }
 | t_date as d
-  { if valid_date year month day then LOCAL_DATE(d) else
+  { if valid_date year month day then (state, LOCAL_DATE(d)) else
     lexing_error lexbuf @@ Printf.sprintf "%s is not a valid date" d
   }
 | t_local_datetime as dt
   {
-    if (valid_date year month day) && (valid_time hours minutes seconds) then LOCAL_DATETIME(dt) else
+    if (valid_date year month day) && (valid_time hours minutes seconds) then (state, LOCAL_DATETIME(dt)) else
     lexing_error lexbuf @@ Printf.sprintf "%s is not a valid local datetime" dt
   }
 | t_offset_datetime as dt
   {
     if (valid_date year month day) && (valid_time hours minutes seconds) && (valid_timezone tz_hours tz_minutes)
-    then OFFSET_DATETIME(dt)
+    then (state, OFFSET_DATETIME(dt))
     else lexing_error lexbuf @@ Printf.sprintf "%s is not a valid datetime" dt
   }
 | t_integer as s
   {
-    if not ((in_top_level ()) || (in_inline_table ())) then INTEGER s
+    if not ((in_top_level state) || (in_inline_table state)) then (state, INTEGER s)
     else if Option.is_some integer_sign then lexing_error lexbuf @@ Printf.sprintf "\"%s\" is not a valid key" s
-    else KEY(s)
+    else (state, KEY(s))
   }
 | t_float as s
   {
-    if not ((in_top_level ()) || (in_inline_table ())) then FLOAT s else
+    if not ((in_top_level state) || (in_inline_table state)) then (state, FLOAT s) else
     (* If we are in the top level context, it's a key that looks like a float. *)
     if Option.is_some float_sign then lexing_error lexbuf @@ Printf.sprintf "\"%s\" is not a valid key" s
     else match float_value with
-    | "nan" | "inf" -> KEY(float_value)
+    | "nan" | "inf" -> (state, KEY(float_value))
     | _ ->
-      if Option.is_none @@ String.index_opt float_value '.' then KEY(float_value) else
+      if Option.is_none @@ String.index_opt float_value '.' then (state, KEY(float_value)) else
       (* This is a bizzare but valid key that looks like a dotted float (like "2.5"). *)
       let float_parts = String.split_on_char '.' float_value in
       begin match float_parts with
       | [i_part; f_part] ->
         let () = move_position lexbuf (~-((String.length f_part) + 1)) in
-        KEY i_part
+        (state, KEY i_part)
       | _ -> failwith @@ Printf.sprintf
           "otoml lexing error: something went wrong when processing a key that looks like a dotted float (\"%s\")"
           float_value
@@ -439,49 +442,48 @@ rule token = parse
 | ("true" | "false") as s
   (* Boolean literals must always be lowercase in TOML. *)
   {
-    if (in_top_level ()) || (in_inline_table ()) then KEY(s)
-    else BOOLEAN(s)
+    if (in_top_level state) || (in_inline_table state) then (state, KEY(s))
+    else (state, BOOLEAN(s))
   }
 (* Bare keys. CAUTION: this _must_ come after primitive values
    because integers and booleans match the same regex! *)
-| ['A'-'Z''a'-'z''0'-'9''_''-']+ as s { KEY(s) }
+| ['A'-'Z''a'-'z''0'-'9''_''-']+ as s { (state, KEY(s)) }
 | "''''''" | '"' '"' '"' '"' '"' '"'
   {
     (* For some reason, read_*_multiline_string fail with "empty token"
        on strings that have nothing between triple quotes.
        This is a quick fix for an issue I don't yet understand.
      *)
-    MULTILINE_STRING ""
+    (state, MULTILINE_STRING "")
   }
 | "'''''"
-  { let buf = Buffer.create 512 in Buffer.add_string buf "''"; read_single_quoted_multiline_string buf lexbuf }
+  { let buf = Buffer.create 512 in Buffer.add_string buf "''"; read_single_quoted_multiline_string state buf lexbuf }
 | "''''"
-  { let buf = Buffer.create 512 in Buffer.add_string buf "'"; read_single_quoted_multiline_string buf lexbuf }
+  { let buf = Buffer.create 512 in Buffer.add_string buf "'"; read_single_quoted_multiline_string state buf lexbuf }
 | "'''"
-    { read_single_quoted_multiline_string (Buffer.create 512) lexbuf }
+    { read_single_quoted_multiline_string state (Buffer.create 512) lexbuf }
 | '"' '"' '"' '"' '"'
-  { let buf = Buffer.create 512 in Buffer.add_string buf "\"\""; read_double_quoted_multiline_string buf lexbuf }
+  { let buf = Buffer.create 512 in Buffer.add_string buf "\"\""; read_double_quoted_multiline_string state buf lexbuf }
 | '"' '"' '"' '"'
-  { let buf = Buffer.create 512 in Buffer.add_string buf "\""; read_double_quoted_multiline_string buf lexbuf }
+  { let buf = Buffer.create 512 in Buffer.add_string buf "\""; read_double_quoted_multiline_string state buf lexbuf }
 | '"' '"' '"'
-    { read_double_quoted_multiline_string (Buffer.create 512) lexbuf }
+    { read_double_quoted_multiline_string state (Buffer.create 512) lexbuf }
 | '''
-    { read_single_quoted_string (Buffer.create 512) lexbuf }
+    { read_single_quoted_string state (Buffer.create 512) lexbuf }
 | '"'
-    { read_double_quoted_string (Buffer.create 512) lexbuf }
+    { read_double_quoted_string state (Buffer.create 512) lexbuf }
 | '#'
   {
-    read_comment (Buffer.create 512) lexbuf;
+    read_comment state (Buffer.create 512) lexbuf;
   }
 | eof
   {
-    let () = context_stack := [] in
-    EOF
+    (state, EOF)
   }
 | _ as bad_char
   { lexing_error lexbuf (Printf.sprintf "unexpected character \'%s\'" (Char.escaped bad_char)) }
 
-and read_comment buf =
+and read_comment state buf =
   parse
   | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F'] as bad_char
       {
@@ -504,30 +506,30 @@ and read_comment buf =
         validate_unicode lexbuf @@ Buffer.contents buf;
         move_position lexbuf (~-1)
       in
-      token lexbuf
+      token state lexbuf
     }
   | [^ '\n' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F']+
-    { Buffer.add_string buf (Lexing.lexeme lexbuf); read_comment buf lexbuf }
+    { Buffer.add_string buf (Lexing.lexeme lexbuf); read_comment state buf lexbuf }
 
-and read_double_quoted_string buf =
+and read_double_quoted_string state buf =
   parse
   | '"'
     {
       let str = Buffer.contents buf in
       let () = validate_unicode lexbuf str in
-      if not (in_top_level ()) && not (in_inline_table ()) then STRING str
-      else KEY str
+      if not (in_top_level state) && not (in_inline_table state) then (state, STRING str)
+      else (state, KEY str)
     }
-  | '\\' '\\' { Buffer.add_char buf '\\'; read_double_quoted_string buf lexbuf }
-  | '\\' 'b'  { Buffer.add_char buf '\b'; read_double_quoted_string buf lexbuf }
-  | '\\' 'f'  { Buffer.add_char buf '\012'; read_double_quoted_string buf lexbuf }
-  | '\\' 'n'  { Buffer.add_char buf '\n'; read_double_quoted_string buf lexbuf }
-  | '\\' 'r'  { Buffer.add_char buf '\r'; read_double_quoted_string buf lexbuf }
-  | '\\' 't'  { Buffer.add_char buf '\t'; read_double_quoted_string buf lexbuf }
-  | '\\' '\'' { Buffer.add_char buf '\''; read_double_quoted_string buf lexbuf }
-  | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_string buf lexbuf }
-  | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_string buf lexbuf }
-  | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_string buf lexbuf }
+  | '\\' '\\' { Buffer.add_char buf '\\'; read_double_quoted_string state buf lexbuf }
+  | '\\' 'b'  { Buffer.add_char buf '\b'; read_double_quoted_string state buf lexbuf }
+  | '\\' 'f'  { Buffer.add_char buf '\012'; read_double_quoted_string state buf lexbuf }
+  | '\\' 'n'  { Buffer.add_char buf '\n'; read_double_quoted_string state buf lexbuf }
+  | '\\' 'r'  { Buffer.add_char buf '\r'; read_double_quoted_string state buf lexbuf }
+  | '\\' 't'  { Buffer.add_char buf '\t'; read_double_quoted_string state buf lexbuf }
+  | '\\' '\'' { Buffer.add_char buf '\''; read_double_quoted_string state buf lexbuf }
+  | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_string state buf lexbuf }
+  | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_string state buf lexbuf }
+  | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_string state buf lexbuf }
   | t_invalid_escape
     {
       let msg = Printf.sprintf "\\%s is not a valid escape sequence" (Char.escaped invalid_escape_char) in
@@ -541,20 +543,20 @@ and read_double_quoted_string buf =
     }
   | [^ '"' '\\' '\n' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F']+
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
-      read_double_quoted_string buf lexbuf
+      read_double_quoted_string state buf lexbuf
     }
   | eof { lexing_error lexbuf "Quoted string is missing the closing double quote" }
 
-and read_single_quoted_string buf =
+and read_single_quoted_string state buf =
   parse
   | '''
     {
       let str = Buffer.contents buf in
       let () = validate_unicode lexbuf str in
-      if not (in_top_level ()) && not (in_inline_table ()) then STRING str
-      else KEY str
+      if not (in_top_level state) && not (in_inline_table state) then (state, STRING str)
+      else (state, KEY str)
     }
-  | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_single_quoted_string buf lexbuf }
+  | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_single_quoted_string state buf lexbuf }
   | '\n' { lexing_error lexbuf "line breaks are not allowed inside strings" }
   | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F'] as bad_char
     { lexing_error lexbuf @@
@@ -563,40 +565,40 @@ and read_single_quoted_string buf =
     }
   | [^ ''' '\n' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F']+
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
-      read_single_quoted_string buf lexbuf
+      read_single_quoted_string state buf lexbuf
     }
   | eof { lexing_error lexbuf "Quoted string is missing the closing single quote" }
 
-and read_double_quoted_multiline_string buf =
+and read_double_quoted_multiline_string state buf =
   parse
   | '"' '"' '"' '"' '"'
     {
       Buffer.add_string buf "\"\"";
       validate_unicode lexbuf @@ Buffer.contents buf;
-      MULTILINE_STRING (Buffer.contents buf |> trim_left_newline) 
+      (state, MULTILINE_STRING (Buffer.contents buf |> trim_left_newline))
     }
   | '"' '"' '"' '"'
     {
       Buffer.add_string buf "\"";
       validate_unicode lexbuf @@ Buffer.contents buf;
-      MULTILINE_STRING (Buffer.contents buf |> trim_left_newline)
+      (state, MULTILINE_STRING (Buffer.contents buf |> trim_left_newline))
     }
   | '"' '"' '"'
-    { validate_unicode lexbuf @@ Buffer.contents buf; MULTILINE_STRING (Buffer.contents buf |> trim_left_newline) }
-  | '\\' '\\' { Buffer.add_char buf '\\'; read_double_quoted_multiline_string buf lexbuf }
-  | '\\' 'b'  { Buffer.add_char buf '\b'; read_double_quoted_multiline_string buf lexbuf }
-  | '\\' 'f'  { Buffer.add_char buf '\012'; read_double_quoted_multiline_string buf lexbuf }
-  | '\\' 'n'  { Buffer.add_char buf '\n'; read_double_quoted_multiline_string buf lexbuf }
-  | '\\' 'r'  { Buffer.add_char buf '\r'; read_double_quoted_multiline_string buf lexbuf }
-  | '\\' 't'  { Buffer.add_char buf '\t'; read_double_quoted_multiline_string buf lexbuf }
-  | '\\' '\'' { Buffer.add_char buf '\''; read_double_quoted_multiline_string buf lexbuf }
-  | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_multiline_string buf lexbuf }
+    { validate_unicode lexbuf @@ Buffer.contents buf; (state, MULTILINE_STRING (Buffer.contents buf |> trim_left_newline)) }
+  | '\\' '\\' { Buffer.add_char buf '\\'; read_double_quoted_multiline_string state buf lexbuf }
+  | '\\' 'b'  { Buffer.add_char buf '\b'; read_double_quoted_multiline_string state buf lexbuf }
+  | '\\' 'f'  { Buffer.add_char buf '\012'; read_double_quoted_multiline_string state buf lexbuf }
+  | '\\' 'n'  { Buffer.add_char buf '\n'; read_double_quoted_multiline_string state buf lexbuf }
+  | '\\' 'r'  { Buffer.add_char buf '\r'; read_double_quoted_multiline_string state buf lexbuf }
+  | '\\' 't'  { Buffer.add_char buf '\t'; read_double_quoted_multiline_string state buf lexbuf }
+  | '\\' '\'' { Buffer.add_char buf '\''; read_double_quoted_multiline_string state buf lexbuf }
+  | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_multiline_string state buf lexbuf }
   | '\\' [' ' '\t' '\n']* '\n' [' ' '\t' '\n']*
     {
-      newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_multiline_string buf lexbuf
+      newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_multiline_string state buf lexbuf
     }
-  | '\n'      { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_double_quoted_multiline_string buf lexbuf }
-  | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_multiline_string buf lexbuf }
+  | '\n'      { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_double_quoted_multiline_string state buf lexbuf }
+  | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_multiline_string state buf lexbuf }
   | t_invalid_escape
     {
       let msg = Printf.sprintf "\\%s is not a valid escape sequence" (Char.escaped invalid_escape_char) in
@@ -609,33 +611,33 @@ and read_double_quoted_multiline_string buf =
          (Char.escaped bad_char)
     }
   | '"' [^ '"']
-    { Buffer.add_string buf "\""; move_position lexbuf (~-1); read_double_quoted_multiline_string buf lexbuf }
+    { Buffer.add_string buf "\""; move_position lexbuf (~-1); read_double_quoted_multiline_string state buf lexbuf }
   | '"' '"' [^ '"']
-    { Buffer.add_string buf "\"\""; move_position lexbuf (~-1); read_double_quoted_multiline_string buf lexbuf }
+    { Buffer.add_string buf "\"\""; move_position lexbuf (~-1); read_double_quoted_multiline_string state buf lexbuf }
   | [^ '"' '\x00'-'\x08' '\n' '\x0B'-'\x1F' '\x7F' '\\']+
     {
       Buffer.add_string buf (Lexing.lexeme lexbuf); 
-      read_double_quoted_multiline_string buf lexbuf
+      read_double_quoted_multiline_string state buf lexbuf
     }
   | eof { lexing_error lexbuf "double-quoted multiline string is missing the closing double quotes" }
 
-and read_single_quoted_multiline_string buf =
+and read_single_quoted_multiline_string state buf =
   parse
   | "'''''"
     {
       Buffer.add_string buf "''";
       validate_unicode lexbuf @@ Buffer.contents buf; 
-      MULTILINE_STRING (Buffer.contents buf |> trim_left_newline)
+      (state, MULTILINE_STRING (Buffer.contents buf |> trim_left_newline))
     }
   | "''''"
     {
       Buffer.add_string buf "'";
       validate_unicode lexbuf @@ Buffer.contents buf;
-      MULTILINE_STRING (Buffer.contents buf |> trim_left_newline)
+      (state, MULTILINE_STRING (Buffer.contents buf |> trim_left_newline))
     }
-  | "'''"   { validate_unicode lexbuf @@ Buffer.contents buf; MULTILINE_STRING (Buffer.contents buf |> trim_left_newline) }
-  | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_single_quoted_multiline_string buf lexbuf }
-  | '\n'    { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_single_quoted_multiline_string buf lexbuf }
+  | "'''"   { validate_unicode lexbuf @@ Buffer.contents buf; (state, MULTILINE_STRING (Buffer.contents buf |> trim_left_newline)) }
+  | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_single_quoted_multiline_string state buf lexbuf }
+  | '\n'    { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_single_quoted_multiline_string state buf lexbuf }
   | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F'] as bad_char
     { lexing_error lexbuf @@
         Printf.sprintf "character '%s' is not allowed inside a string literal without escaping"
@@ -643,7 +645,7 @@ and read_single_quoted_multiline_string buf =
     }
   | (''' [^ '''] | ''' ''' [^ ''']  | [^ ''' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F']+)
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
-      read_single_quoted_multiline_string buf lexbuf
+      read_single_quoted_multiline_string state buf lexbuf
     }
   | eof { lexing_error lexbuf "single-quoted multiline string is missing the closing single quotes" }
 

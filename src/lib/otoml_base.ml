@@ -541,18 +541,18 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 	  try (Toml_parser_messages.message (MI.number state)) with
 	  | Not_found -> "invalid syntax (no specific message for this eror)"
 
-    let rec _parse lexbuf (checkpoint : (node list) MI.checkpoint ) =
+    let rec _parse state lexbuf (checkpoint : (node list) MI.checkpoint ) =
       match checkpoint with
       | MI.InputNeeded _env ->
-	let token = Toml_lexer.token lexbuf in
+	let state, token = Toml_lexer.token state lexbuf in
 	let startp = lexbuf.lex_start_p
 	and endp = lexbuf.lex_curr_p in
 	let checkpoint = MI.offer checkpoint (token, startp, endp) in
-	_parse lexbuf checkpoint
+	_parse state lexbuf checkpoint
       | MI.Shifting _
       | MI.AboutToReduce _ ->
 	let checkpoint = MI.resume checkpoint in
-	_parse lexbuf checkpoint
+	_parse state lexbuf checkpoint
       | MI.HandlingError _env ->
 	let line, pos = Parser_utils.get_lexing_position lexbuf in
 	let err = get_parse_error _env in
@@ -740,13 +740,9 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       
 
     let parse lexbuf =
-      (* Reset the lexer context
-	 for the case when previous lexing failures left the lexer
-	 in an inconsistent state.
-	 I hope to make this pure and re-entrant some time.
-       *)
-      let () = Toml_lexer.context_stack := [] in
-      let toml_statements = _parse lexbuf (Toml_parser.Incremental.toml_ast lexbuf.lex_curr_p) in
+      (* Make a fresh lexer context *)
+      let state = [] in
+      let toml_statements = _parse state lexbuf (Toml_parser.Incremental.toml_ast lexbuf.lex_curr_p) in
       let tail_stmts, toml = from_statements (TomlTable []) [] [] toml_statements in
       if tail_stmts <> [] then internal_error "from_statements left a non-empty tail"
       else toml
