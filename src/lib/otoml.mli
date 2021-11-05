@@ -76,6 +76,12 @@ val get_integer : ?strict:bool -> t -> int
 val get_float : ?strict:bool -> t -> float
 val get_boolean : ?strict:bool -> t -> bool
 
+(** Combinators *)
+
+val get_opt : ('a -> 'b) -> 'a -> 'b option
+val get_result : ('a -> 'b) -> 'a -> ('b, string) result
+
+
 (** High-level interface *)
 
 val list_table_keys : t -> string list
@@ -209,6 +215,11 @@ module Base : sig
     val get_local_date : t -> toml_date
     val get_date : t -> toml_date
     val get_local_time : t -> toml_date
+
+    (** Combinators *)
+
+    val get_opt : ('a -> 'b) -> 'a -> 'b option
+    val get_result : ('a -> 'b) -> 'a -> ('b, string) result
 
     (** High-level interface *)
 

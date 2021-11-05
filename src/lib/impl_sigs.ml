@@ -114,6 +114,10 @@ module type TomlImplementation = sig
   val get_date : t -> toml_date
   val get_local_time : t -> toml_date
 
+  (** Combinators *)
+
+  val get_opt : ('a -> 'b) -> 'a -> 'b option
+  val get_result : ('a -> 'b) -> 'a -> ('b, string) result
 
   (** High-level interface *)
 

@@ -201,6 +201,15 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     | TomlLocalTime dt -> dt
     | _ -> Printf.ksprintf type_error "value must be a local time, found %s" (type_string t)
 
+  (* Combinators *)
+
+  let get_opt f t =
+    try Some (f t)
+    with Type_error _ -> None
+
+  let get_result f t =
+    try Ok (f t)
+    with Type_error msg -> Error msg
 
   (* High-level interfaces *)
 
