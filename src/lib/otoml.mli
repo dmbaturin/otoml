@@ -66,6 +66,8 @@ val inline_table : (string * t) list -> t
 val get_value : t -> t
 val get_table : t -> (string * t) list
 
+val get_table_values : (t -> 'a) -> t -> (string * 'a) list
+
 (** In non-strict mode, forces a value [x] to a single-item array [[x]] *) 
 val get_array : ?strict:bool -> (t -> 'a) -> t -> 'a list
 
@@ -191,6 +193,7 @@ module Base : sig
     val get_value : t -> t
 
     val get_table : t -> (string * t) list
+    val get_table_values : (t -> 'a) -> t -> (string * 'a) list
 
     (** In non-strict mode, forces a value [x] to a single-item array [[x]] *) 
     val get_array : ?strict:bool -> (t -> 'a) -> t -> 'a list

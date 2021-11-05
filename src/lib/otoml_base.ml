@@ -103,6 +103,10 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     | TomlTable os | TomlInlineTable os -> os
     | _ -> Printf.ksprintf type_error "value is %s, not a table" (type_string t)
 
+  let get_table_values accessor t =
+    let kvs = get_table t in
+    List.map (fun (k, v) -> (k, accessor v)) kvs
+
   let get_string ?(strict=true) t =
     match t with
     | TomlString s -> s
