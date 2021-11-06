@@ -121,6 +121,8 @@ module type TomlImplementation = sig
 
   (** High-level interface *)
 
+  val path_exists : t -> string list -> bool
+
   val list_table_keys : t -> string list
 
   val find : t -> (t -> 'a) -> string list -> 'a
