@@ -23,6 +23,7 @@ depends: [
   "dune" {>= "2.0.0"}
   "uutf" {>= "1.0.0"}
   "ounit2" {with-test}
+  "odoc" {with-doc}
 ]
 synopsis: "TOML parsing, manipulation, and pretty-printing library (1.0.0-compliant)"
 description: """
