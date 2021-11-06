@@ -1,239 +1,25 @@
 (** Default TOML implementation. *)
 
-(** Raised when a TOML table does not have specified key. *)
-exception Key_error of string
-
-(** Raised when an operation is performed with an incompatible TOML type. *)
-exception Type_error of string
-
-(** Raised when a TOML document cannot be parsed due to syntax or semantic errors. *)
-exception Parse_error of ((int * int) option * string)
-
-type t =
-  | TomlString of string
-  | TomlInteger of int
-  | TomlFloat of float
-  | TomlBoolean of bool
-  | TomlOffsetDateTime of string
-  | TomlLocalDateTime of string
-  | TomlLocalDate of string
-  | TomlLocalTime of string
-  | TomlArray of t list
-  | TomlTable of (string * t) list
-  | TomlInlineTable of (string * t) list
-  | TomlTableArray of t list
-
-module Printer : sig
-  val to_string :
-    ?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool ->
-    ?newline_before_table:bool -> ?collapse_tables:bool -> ?force_table_arrays:bool ->
-    t -> string
-
-  val to_channel :
-    ?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool ->
-    ?newline_before_table:bool -> ?collapse_tables:bool -> ?force_table_arrays:bool ->
-    out_channel -> t -> unit
-end
-
-module Parser : sig
-  val from_file : string -> t
-  val from_channel : in_channel -> t
-  val from_string : string -> t
-
-  val from_file_result : string -> (t, string) result
-  val from_channel_result : in_channel -> (t, string) result
-  val from_string_result : string -> (t, string) result
-
-  val format_parse_error : (int * int) option -> string -> string
-end
-
-(** Constructors *)
-
-val string : string -> t
-val integer : int -> t
-val float : float -> t
-val boolean : bool -> t
-val offset_datetime : string -> t
-val local_datetime : string -> t
-val local_date : string -> t
-val local_time : string -> t
-val array : t list -> t
-val table : (string * t) list -> t
-val inline_table : (string * t) list -> t
-
-(** Accessors *)
-
-val get_value : t -> t
-val get_table : t -> (string * t) list
-
-val get_table_values : (t -> 'a) -> t -> (string * 'a) list
-
-(** In non-strict mode, forces a value [x] to a single-item array [[x]] *) 
-val get_array : ?strict:bool -> (t -> 'a) -> t -> 'a list
-
-val get_string : ?strict:bool -> t -> string
-val get_integer : ?strict:bool -> t -> int
-val get_float : ?strict:bool -> t -> float
-val get_boolean : ?strict:bool -> t -> bool
-
-(** Combinators *)
-
-val get_opt : ('a -> 'b) -> 'a -> 'b option
-val get_result : ('a -> 'b) -> 'a -> ('b, string) result
-
-
-(** High-level interface *)
-
-val list_table_keys : t -> string list
-
-val find : t -> (t -> 'a) -> string list -> 'a
-
-val find_opt : t -> (t -> 'a) -> string list -> 'a option
-
-val find_or : default:'a -> t -> (t -> 'a) -> string list -> 'a
-
-val find_result : t -> (t -> 'a) -> string list -> ('a, string) result
-
-val path_exists : t -> string list -> bool
-
-val update : ?use_inline_tables:bool -> t -> string list -> t option -> t
+include Impl_sigs.TomlImplementation
+  with type toml_integer = int
+  and type toml_float = float
+  and type toml_date = string
 
 module Base : sig
   module type TomlInteger = sig
-    type t
-
-    val to_string : t -> string
-    val of_string : string -> t
-
-    val to_boolean : t -> bool
-    val of_boolean : bool -> t
+    include Impl_sigs.TomlInteger
   end
 
   module type TomlFloat = sig
-    type t
-
-    val to_string : t -> string
-    val of_string : string -> t
-
-    val to_boolean : t -> bool
-    val of_boolean : bool -> t
+    include Impl_sigs.TomlFloat
   end
 
   module type TomlDate = sig
-    type t
-
-    val local_time_of_string : string -> t
-    val local_date_of_string : string -> t
-    val local_datetime_of_string : string -> t
-    val offset_datetime_of_string : string -> t
-
-    val local_time_to_string : t -> string
-    val local_date_to_string : t -> string
-    val local_datetime_to_string : t -> string
-    val offset_datetime_to_string : t -> string 
+    include Impl_sigs.TomlDate
   end
 
   module type TomlImplementation = sig
-    type toml_integer
-    type toml_float
-    type toml_date
-
-    exception Key_error of string
-    exception Type_error of string
-    exception Parse_error of ((int * int) option * string)
-
-    type t =
-    | TomlString of string
-    | TomlInteger of toml_integer
-    | TomlFloat of toml_float
-    | TomlBoolean of bool
-    | TomlOffsetDateTime of toml_date
-    | TomlLocalDateTime of toml_date
-    | TomlLocalDate of toml_date
-    | TomlLocalTime of toml_date
-    | TomlArray of t list
-    | TomlTable of (string * t) list
-    | TomlInlineTable of (string * t) list
-    | TomlTableArray of t list
-
-    module Printer : sig
-      val to_string :
-	?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool ->
-	?newline_before_table:bool -> ?collapse_tables:bool -> ?force_table_arrays:bool ->
-	t -> string
-
-      val to_channel :
-	?indent_width:int -> ?indent_character:char -> ?indent_subtables:bool ->
-	?newline_before_table:bool -> ?collapse_tables:bool -> ?force_table_arrays:bool ->
-	out_channel -> t -> unit
-    end
-
-    module Parser : sig
-      val from_file : string -> t
-      val from_channel : in_channel -> t
-      val from_string : string -> t
-
-      val from_file_result : string -> (t, string) result
-      val from_channel_result : in_channel -> (t, string) result
-      val from_string_result : string -> (t, string) result
-
-      val format_parse_error : (int * int) option -> string -> string
-    end
-
-    (** Constructors *)
-
-    val string : string -> t
-    val integer : toml_integer -> t
-    val float : toml_float -> t
-    val boolean : bool -> t
-    val offset_datetime : toml_date -> t
-    val local_datetime : toml_date -> t
-    val local_date : toml_date -> t
-    val local_time : toml_date -> t
-    val array : t list -> t
-    val table : (string * t) list -> t
-    val inline_table : (string * t) list -> t
-
-    (** Accessors *)
-
-    val get_value : t -> t
-
-    val get_table : t -> (string * t) list
-    val get_table_values : (t -> 'a) -> t -> (string * 'a) list
-
-    (** In non-strict mode, forces a value [x] to a single-item array [[x]] *) 
-    val get_array : ?strict:bool -> (t -> 'a) -> t -> 'a list
-
-    val get_string : ?strict:bool -> t -> string
-    val get_integer : ?strict:bool -> t -> toml_integer
-    val get_float : ?strict:bool -> t -> toml_float
-    val get_boolean : ?strict:bool -> t -> bool
-
-    val get_offset_datetime : t -> toml_date
-    val get_local_datetime : t -> toml_date
-    val get_datetime : t -> toml_date
-    val get_local_date : t -> toml_date
-    val get_date : t -> toml_date
-    val get_local_time : t -> toml_date
-
-    (** Combinators *)
-
-    val get_opt : ('a -> 'b) -> 'a -> 'b option
-    val get_result : ('a -> 'b) -> 'a -> ('b, string) result
-
-    (** High-level interface *)
-
-    val list_table_keys : t -> string list
-
-    val find : t -> (t -> 'a) -> string list -> 'a
-
-    val find_opt : t -> (t -> 'a) -> string list -> 'a option
-
-    val find_or : default:'a -> t -> (t -> 'a) -> string list -> 'a
-
-    val find_result : t -> (t -> 'a) -> string list -> ('a, string) result
-
-    val update : ?use_inline_tables:bool -> t -> string list -> t option -> t
+    include Impl_sigs.TomlImplementation
   end
 
   module OCamlInteger : TomlInteger with type t = Int.t
