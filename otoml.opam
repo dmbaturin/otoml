@@ -7,7 +7,14 @@ bug-reports: "https://github.com/dmbaturin/otoml/issues"
 dev-repo: "git+https://github.com/dmbaturin/otoml.git"
 license: "MIT"
 build: [
-  ["dune" "build" "-p" name "-j" jobs]
+  [
+    "dune" "build"
+    "-p" name
+    "-j" jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
 ]
 depends: [
   "ocaml" {>= "4.08.0"}
