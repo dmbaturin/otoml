@@ -339,6 +339,8 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     try Ok (update ~use_inline_tables:use_inline_tables value path new_value)
     with Key_error msg | Type_error msg -> Error msg
 
+  let string_of_path  = Utils.string_of_path
+
   module Printer = struct
     let force_inline v =
       match v with

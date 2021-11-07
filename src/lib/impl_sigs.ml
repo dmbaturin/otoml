@@ -140,5 +140,13 @@ module type TomlImplementation = sig
   val update : ?use_inline_tables:bool -> t -> string list -> t option -> t
 
   val update_result : ?use_inline_tables:bool -> t -> string list -> t option -> (t, string) result
+
+  (** Utility functions *)
+
+
+  (** Makes a printable representation of a table key path,
+      for example, [["foo"; "bar baz"; "quux"]] gives [foo."bar baz".quux].
+   *)
+  val string_of_path : string list -> string
 end
 
