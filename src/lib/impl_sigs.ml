@@ -124,8 +124,12 @@ module type TomlImplementation = sig
   val path_exists : t -> string list -> bool
 
   val list_table_keys : t -> string list
+  val list_table_keys_exn : t -> string list
+  val list_table_keys_result : t -> (string list, string) result
 
   val find : t -> (t -> 'a) -> string list -> 'a
+
+  val find_exn : t -> (t -> 'a) -> string list -> 'a
 
   val find_opt : t -> (t -> 'a) -> string list -> 'a option
 

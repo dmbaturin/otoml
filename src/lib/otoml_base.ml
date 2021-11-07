@@ -220,6 +220,12 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     in
     List.fold_left (fun acc (x, _) -> x :: acc) [] t |> List.rev
 
+  let list_table_keys_exn = list_table_keys
+
+  let list_table_keys_result t =
+    try Ok (list_table_keys_exn t)
+    with Type_error msg -> Error msg
+
   let _field k t =
     begin
       let t = get_table t in
@@ -271,6 +277,8 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
     | Type_error msg ->
       Printf.ksprintf type_error "Unexpected TOML value type at key %s: %s"
 	(make_dotted_path path) msg
+
+  let find_exn = find
 
   let find_opt value accessor path =
     try Some (find value accessor path)
