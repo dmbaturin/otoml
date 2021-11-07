@@ -138,5 +138,7 @@ module type TomlImplementation = sig
   val find_result : t -> (t -> 'a) -> string list -> ('a, string) result
 
   val update : ?use_inline_tables:bool -> t -> string list -> t option -> t
+
+  val update_result : ?use_inline_tables:bool -> t -> string list -> t option -> (t, string) result
 end
 

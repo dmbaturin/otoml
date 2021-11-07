@@ -328,12 +328,16 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       if use_inline then (TomlInlineTable []) else (TomlTable [])
     in
     match path with
-    | [] -> failwith "Cannot update a TOML value at an empty path"
+    | [] -> Printf.ksprintf key_error "Cannot update a TOML value at an empty path"
     | [p] -> update_field value p new_value
     | p :: ps ->
       let nested_value = field_opt p value |> Option.value ~default:(make_empty_table use_inline_tables) in
       let nested_value = update nested_value ps new_value in
       update_field value p (Some nested_value)
+
+  let update_result ?(use_inline_tables=false) value path new_value =
+    try Ok (update ~use_inline_tables:use_inline_tables value path new_value)
+    with Key_error msg | Type_error msg -> Error msg
 
   module Printer = struct
     let force_inline v =
