@@ -3,31 +3,40 @@
    Compile with: ocamlfind ocamlopt -package otoml,zarith,decimal,yojson -linkpkg ./examples/testsuite_client_encoder.ml -o encoder
  *)
 
-module BigInteger = struct
-  type t = Z.t
-  let of_string = Z.of_string
-  let to_string = Z.to_string
-  let of_boolean b = if b then Z.one else Z.zero
-  let to_boolean n = (n <> Z.zero)
-end
+(* No signature ascriptions: something like
+   `module BigNumber : Otoml.Base.TomlNumber` would make the type t abstract,
+   which is inconvenient.
+   There are two ways to avoid that: either write `with type` explicitly,
+   or just omit the ascription.
+ *)
+module BigNumber = struct
+  type int = Z.t
+  type float = Decimal.t
 
-module BigFloat = struct
-  type t = Decimal.t
+  let int_of_string = Z.of_string
+  let int_to_string = Z.to_string
+  let int_of_boolean b = if b then Z.one else Z.zero
+  let int_to_boolean n = (n <> Z.zero)
+
   (* Can't just reuse Decimal.to/of_string because their optional arguments
      would cause a signature mismatch. *)
-  let of_string s = Decimal.of_string s
+  let float_of_string s = Decimal.of_string s
 
   (* Decimal.to_string uses "NaN" spelling
      while TOML requires all special float values to be lowercase. *)
-  let to_string x = Decimal.to_string x |> String.lowercase_ascii
-  let of_boolean b = if b then Decimal.one else Decimal.zero
-  let to_boolean x = (x <> Decimal.zero)
+  let float_to_string x = Decimal.to_string x |> String.lowercase_ascii
+  let float_of_boolean b = if b then Decimal.one else Decimal.zero
+  let float_to_boolean x = (x <> Decimal.zero)
+
+  let float_of_int = Decimal.of_bigint
+  let int_of_float = Decimal.to_bigint
+
 end
 
-module Otoml = Otoml.Base.Make (BigInteger) (BigFloat) (Otoml.Base.StringDate)
+
+module Otoml = Otoml.Base.Make (BigNumber) (Otoml.Base.StringDate)
 
 module OT = Otoml
-
 
 let rec from_json j =
   match j with
