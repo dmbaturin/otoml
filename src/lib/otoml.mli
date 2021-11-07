@@ -6,12 +6,8 @@ include Impl_sigs.TomlImplementation
   and type toml_date = string
 
 module Base : sig
-  module type TomlInteger = sig
-    include Impl_sigs.TomlInteger
-  end
-
-  module type TomlFloat = sig
-    include Impl_sigs.TomlFloat
+  module type TomlNumber = sig
+    include Impl_sigs.TomlNumber
   end
 
   module type TomlDate = sig
@@ -22,10 +18,14 @@ module Base : sig
     include Impl_sigs.TomlImplementation
   end
 
-  module OCamlInteger : TomlInteger with type t = Int.t
-  module OCamlFloat : TomlFloat with type t = Float.t
+  module OCamlNumber : TomlNumber
+    with type int = Int.t
+    and type float = Float.t
+
   module StringDate : TomlDate with type t = string
 
-  module Make (I : TomlInteger) (F : TomlFloat) (D : TomlDate) : 
-    TomlImplementation with type toml_integer = I.t and type toml_float = F.t and type toml_date = D.t
+  module Make (N : TomlNumber) (D : TomlDate) : TomlImplementation
+    with type toml_integer = N.int
+    and type toml_float = N.float
+    and type toml_date = D.t
 end

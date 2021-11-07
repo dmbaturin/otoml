@@ -8,6 +8,6 @@ module Base = struct
   include Otoml_base
 end
 
-module DefaultImpl = Base.Make (Base.OCamlInteger) (Base.OCamlFloat) (Base.StringDate)
+module DefaultImpl = Base.Make (Base.OCamlNumber) (Base.StringDate)
 
 include DefaultImpl

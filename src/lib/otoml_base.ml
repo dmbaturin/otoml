@@ -20,11 +20,11 @@ exception Field_error of string
    but it's type is wrong for the accessor function passed by the user. *)
 exception Not_a_table of string
 
-module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
+module Make (N: TomlNumber) (D: TomlDate) = struct
   include Common
 
-  type toml_integer = I.t
-  type toml_float = F.t
+  type toml_integer = N.int
+  type toml_float = N.float
   type toml_date = D.t
 
   type t =
@@ -114,8 +114,8 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       begin
 	if strict then Printf.ksprintf type_error "value must be a string, found %s" (type_string t) else
 	match t with
-	| TomlInteger i -> I.to_string i
-	| TomlFloat f -> F.to_string f
+	| TomlInteger i -> N.int_to_string i
+	| TomlFloat f -> N.float_to_string f
 	| TomlBoolean b -> string_of_bool b
 	| _ -> Printf.ksprintf type_error "cannot convert %s to string" (type_string t)
       end
@@ -127,20 +127,28 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
       begin
 	if strict then Printf.ksprintf type_error "value must be an integer, found %s" (type_string t) else
 	match t with
-	| TomlString s -> I.of_string s
-	| TomlBoolean b -> I.of_boolean b
+        | TomlFloat f -> N.int_of_float f
+	| TomlString s ->
+          begin
+            try N.int_of_string s
+            with Failure _ ->
+              Printf.ksprintf type_error "string \"%s\" does not represent a valid integer"
+              (Utils.escape_string s)
+          end
+	| TomlBoolean b -> N.int_of_boolean b
 	| _ -> Printf.ksprintf type_error "cannot convert %s to integer" (type_string t)
       end
 
   let get_float ?(strict=true) t =
     match t with
+    | TomlInteger i -> N.float_of_int i
     | TomlFloat f -> f
     | _ ->
       begin
         if strict then Printf.ksprintf type_error "value must be a float, found %s" (type_string t) else
         match t with
-        | TomlString s -> F.of_string s
-        | TomlBoolean b -> F.of_boolean b
+        | TomlString s -> N.float_of_string s
+        | TomlBoolean b -> N.float_of_boolean b
         | _ -> Printf.ksprintf type_error "cannot convert %s to float" (type_string t)
       end
 
@@ -152,8 +160,8 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 	if strict then Printf.ksprintf type_error "value must be a boolean, found %s" (type_string t) else
 	match t with
 	| TomlString s -> (s = "")
-	| TomlInteger i -> I.to_boolean i
-	| TomlFloat f -> F.to_boolean f
+	| TomlInteger i -> N.int_to_boolean i
+	| TomlFloat f -> N.float_to_boolean f
 	| TomlArray a | TomlTableArray a -> (a = [])
 	| TomlTable o | TomlInlineTable o -> (o = [])
 	| _ -> false
@@ -417,9 +425,9 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
               callback "\""
             end
       | TomlInteger i ->
-	callback @@ I.to_string i
+	callback @@ N.int_to_string i
       | TomlFloat f ->
-	callback @@ F.to_string f
+	callback @@ N.float_to_string f
       | TomlBoolean b ->
 	callback @@ string_of_bool b
       | TomlOffsetDateTime dt ->
@@ -698,8 +706,8 @@ module Make (I: TomlInteger) (F: TomlFloat) (D: TomlDate) = struct
 
     let rec value_of_node n =
       match n with
-      | NodeInteger n -> TomlInteger (I.of_string n)
-      | NodeFloat x -> TomlFloat (F.of_string x)
+      | NodeInteger n -> TomlInteger (N.int_of_string n)
+      | NodeFloat x -> TomlFloat (N.float_of_string x)
       | NodeString s -> TomlString s
       | NodeBoolean b -> TomlBoolean (bool_of_string b)
       | NodeOffsetDateTime dt -> TomlOffsetDateTime (D.offset_datetime_of_string dt)

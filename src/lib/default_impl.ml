@@ -1,6 +1,6 @@
-
-module OCamlFloat = struct
-  type t = Float.t 
+module OCamlNumber = struct
+  type float = Float.t
+  type int = Int.t
 
   let normalize_nan f =
     (* TOML spec makes no difference between positive and negative NaN,
@@ -16,23 +16,22 @@ module OCamlFloat = struct
      It also differentiates between +nan and -nan,
      which is why the normalize function is needed.
    *)
-  let of_string x = Stdlib.float_of_string x |> normalize_nan
-  let to_string x = Printf.sprintf "%.2f" x
+  let float_of_string x = float_of_string x |> normalize_nan
+  let float_to_string x = Printf.sprintf "%.2f" x
 
-  let to_boolean x = x = 0.0
-  let of_boolean b = if b then 1.0 else 0.0
-end
+  let float_to_boolean x =
+    not (x = 0.0)
+  let float_of_boolean b =
+    if b then 1.0 else 0.0
 
-module OCamlInteger = struct
-  type t = Int.t
+  let float_of_int = Float.of_int
+  let int_of_float = Int.of_float
 
-  (* int_of_string correctly handles all possible TOML integers,
-     including underscores and leading + *)
-  let of_string = Stdlib.int_of_string
-  let to_string = Int.to_string
+  let int_of_string = int_of_string
+  let int_to_string = Int.to_string
 
-  let to_boolean i = i > 0
-  let of_boolean b = if b then 1 else 0
+  let int_to_boolean i = i > 0
+  let int_of_boolean b = if b then 1 else 0
 end
 
 module StringDate = struct

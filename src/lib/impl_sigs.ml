@@ -1,21 +1,21 @@
-module type TomlInteger = sig
-  type t
+module type TomlNumber = sig
+  type int
+  type float
 
-  val to_string : t -> string
-  val of_string : string -> t
+  val int_of_string : string -> int
+  val int_to_string : int -> string
 
-  val to_boolean : t -> bool
-  val of_boolean : bool -> t
-end
+  val float_of_string : string -> float
+  val float_to_string : float -> string
 
-module type TomlFloat = sig
-  type t
+  val int_of_float : float -> int
+  val float_of_int : int -> float
+  
+  val int_of_boolean : bool -> int
+  val int_to_boolean : int -> bool
 
-  val to_string : t -> string
-  val of_string : string -> t
-
-  val to_boolean : t -> bool
-  val of_boolean : bool -> t
+  val float_of_boolean : bool -> float
+  val float_to_boolean : float -> bool
 end
 
 module type TomlDate = sig
@@ -132,10 +132,22 @@ module type TomlImplementation = sig
 
   (** In non-strict mode, converts string and boolean values to integers.
 
-      Strings are parsed as integers, [true] is converted to 1, [false] is converted to 0.
+      Strings are parsed as integers, [true] is converted to 1, [false] is converted to 0,
+      and floats are truncated.
    *)
   val get_integer : ?strict:bool -> t -> toml_integer
+
+  (** In non-strict mode, converts string, boolean, and integer values to floats.
+
+   *)
   val get_float : ?strict:bool -> t -> toml_float
+
+  (** In non-strict mode, converts integer, float, and string values to booleans.
+
+      The conversion logic mimics "truth values" in dynamically typed languages.
+      Empty strings, numeric values 0 (integer) and 0.0 (float), empty arrays and tables
+      are treated as [false], everything else is [true].
+   *)
   val get_boolean : ?strict:bool -> t -> bool
 
   val get_offset_datetime : t -> toml_date
