@@ -37,8 +37,20 @@ module type TomlImplementation = sig
   type toml_float
   type toml_date
 
+  (** {2 Exceptions} *)
+
+  (** Raised when a table field does not exist. *)
   exception Key_error of string
+
+  (** Raised when a TOML value type is not what an accessor
+     or another function expects.
+   *)
   exception Type_error of string
+
+  (** Raised when the parser encounters invalid TOML syntax.
+     The first member of the tuple is the source file position
+     (line and column).
+   *)
   exception Parse_error of ((int * int) option * string)
 
   type t =
@@ -68,18 +80,29 @@ module type TomlImplementation = sig
   end
 
   module Parser : sig
+
+    (** Reads TOML from a file. May raise {!Parse_error} or {!Stdlib.Sys_error}. *)
     val from_file : string -> t
+
+    (** Reads TOML from an input channel. May raise {!Parse_error} or {!Stdlib.Sys_error}. *)
     val from_channel : in_channel -> t
+
+    (** Reads TOML from a string. May raise {!Parse_error} or {!Stdlib.Sys_error}. *)
     val from_string : string -> t
 
+    (** Like {!from_file}, but handles both {!Parse_error} or {!Stdlib.Sys_error} exceptions
+        and wraps the error message in {!Stdlib.result}. *)
     val from_file_result : string -> (t, string) result
     val from_channel_result : in_channel -> (t, string) result
     val from_string_result : string -> (t, string) result
 
+    (** Converts the value attached to a {!Parse_error} exception
+        to an error message string.
+     *)
     val format_parse_error : (int * int) option -> string -> string
   end
 
-  (** Constructors *)
+  (** {2 Constructors} *)
 
   val string : string -> t
   val integer : toml_integer -> t
@@ -93,7 +116,7 @@ module type TomlImplementation = sig
   val table : (string * t) list -> t
   val inline_table : (string * t) list -> t
 
-  (** Accessors *)
+  (** {2 Accessors} *)
 
   val get_value : t -> t
   val get_table : t -> (string * t) list
@@ -102,7 +125,15 @@ module type TomlImplementation = sig
   (** In non-strict mode, forces a value [x] to a single-item array [[x]] *) 
   val get_array : ?strict:bool -> (t -> 'a) -> t -> 'a list
 
+  (** In non-strict mode, converts integer, float, boolean, and datetime values to strings.
+      Trying to convert an array or a table to string will raise {!Type_error}.
+   *)
   val get_string : ?strict:bool -> t -> string
+
+  (** In non-strict mode, converts string and boolean values to integers.
+
+      Strings are parsed as integers, [true] is converted to 1, [false] is converted to 0.
+   *)
   val get_integer : ?strict:bool -> t -> toml_integer
   val get_float : ?strict:bool -> t -> toml_float
   val get_boolean : ?strict:bool -> t -> bool
