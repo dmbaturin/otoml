@@ -102,7 +102,10 @@ module type TomlImplementation = sig
     val format_parse_error : (int * int) option -> string -> string
   end
 
-  (** {2 Constructors} *)
+  (** {2 Constructors}
+
+      Constructors create TOML values from OCaml values.
+   *)
 
   val string : string -> t
   val integer : toml_integer -> t
@@ -116,13 +119,42 @@ module type TomlImplementation = sig
   val table : (string * t) list -> t
   val inline_table : (string * t) list -> t
 
-  (** {2 Accessors} *)
+  (** {2 Accessors}
+
+      Accessors can be used by themselves on TOML values, or passed to
+      high-level interface functions such as {!find}.
+
+      By default they expect a strict match, e.g. {!get_string}
+      fails on values other than [TomlString _]. However, they all
+      provide a boolean [~strict] argument that enables type conversion when set to [false].
+      Not all types can be converted between each other, so [~strict:false]
+      does not prevent all type errors.
+ 
+      All accessors will raise {!Type_error} exception if type conversion
+      is disabled or fails. High-level interface functions handle those exceptions,
+      so you don't need to handle it.
+      
+      If you want to use accessors directly on TOML values and you want option or result
+      values instead of exceptions, you can use {!get_opt} and {!get_result} combinators.
+   *)
 
   val get_value : t -> t
   val get_table : t -> (string * t) list
   val get_table_values : (t -> 'a) -> t -> (string * 'a) list
 
-  (** In non-strict mode, forces a value [x] to a single-item array [[x]] *) 
+  (** Converts a TOML array to a list of OCaml values by applying
+      an accessor function to each of them.
+
+      For example, if you want to retrieve an array of strings,
+      you can use [get_array get_string toml_value].
+
+      In non-strict mode, forces a value [x] to a single-item array [[x]].
+
+      Note that the [strict] flag is not passed to the accessor.
+      If you want the accessor to also attempt type conversion on the array values,
+      you should specify it explicitly:
+      [get_array ~strict:false (get_string ~strict:false) toml_value].
+   *) 
   val get_array : ?strict:bool -> (t -> 'a) -> t -> 'a list
 
   (** In non-strict mode, converts integer, float, boolean, and datetime values to strings.
@@ -184,7 +216,7 @@ module type TomlImplementation = sig
 
   val update_result : ?use_inline_tables:bool -> t -> string list -> t option -> (t, string) result
 
-  (** Utility functions *)
+  (** {3 Utility functions} *)
 
 
   (** Makes a printable representation of a table key path,
