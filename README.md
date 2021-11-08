@@ -92,27 +92,39 @@ However, it's not hardcoded but built with a functor.
 This is how you could assemble the default implementation yourself.
 
 ```ocaml
-module DefaultToml = Otoml.Base.Make (Otoml.Base.OCamlInteger) (Otoml.Base.OCamlFloat) (Otoml.Base.StringDate)
+module DefaultToml = Otoml.Base.Make (Otoml.Base.OCamlNumber) (Otoml.Base.StringDate)
 ```
 
 Thus you can replace any of the modules or all of them with your own.
-For example, this is how you can use [zarith](https://opam.ocaml.org/packages/zarith/) for a big integer implementation
-but keep native floats and simple string dates:
+For example, this is how you can use [zarith](https://opam.ocaml.org/packages/zarith/)
+and [decimal](https://opam.ocaml.org/packages/decimal/) for big numbers.
+but keep simple string dates:
 
 ```ocaml
-(* No signature ascription:
-   `module BigInteger : Otoml.Base.TomlInteger` would make the type t abstract,
-   which is inconvenient.
- *)
-module BigInteger = struct
-  type t = Z.t
-  let of_string = Z.of_string
-  let to_string = Z.to_string
-  let of_boolean b = if b then Z.one else Z.zero
-  let to_boolean n = (n <> Z.zero)
+module BigNumber = struct
+  type int = Z.t
+  type float = Decimal.t
+
+  let int_of_string = Z.of_string
+  let int_to_string = Z.to_string
+  let int_of_boolean b = if b then Z.one else Z.zero
+  let int_to_boolean n = (n <> Z.zero)
+
+  (* Can't just reuse Decimal.to/of_string because their optional arguments
+     would cause a signature mismatch. *)
+  let float_of_string s = Decimal.of_string s
+
+  (* Decimal.to_string uses "NaN" spelling
+     while TOML requires all special float values to be lowercase. *)
+  let float_to_string x = Decimal.to_string x |> String.lowercase_ascii
+  let float_of_boolean b = if b then Decimal.one else Decimal.zero
+  let float_to_boolean x = (x <> Decimal.zero)
+
+  let float_of_int = Decimal.of_bigint
+  let int_of_float = Decimal.to_bigint
 end
 
-module MyToml = Otoml.Base.Make (BigInteger) (Otoml.Base.OCamlFloat) (Otoml.Base.StringDate)
+module MyToml = Otoml.Base.Make (BigNumber) (Otoml.Base.StringDate)
 ```
 
 ## Deviations from the TOML 1.0 specification
