@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.3
+
+### Breaking changes
+
+The functor now takes a single `TomlNumber` module insteaf of independent `TomlInteger` and `TomlFloat`
+modules.
+The reason for that change is that for integer/float conversions to work, the module needs to know
+both int and float types and provide conversion functions that involve both types.
+That change has no effect on the default implementation interface.
+
+### Bug fixes
+
+Accessors: fixed incorrect float to boolean conversion and added int/float conversions.
+
 ## 0.9.2
 
 ### Breaking changes

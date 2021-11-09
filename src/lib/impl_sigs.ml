@@ -93,7 +93,9 @@ module type TomlImplementation = sig
     (** Like {!from_file}, but handles both {!Parse_error} or {!Stdlib.Sys_error} exceptions
         and wraps the error message in {!Stdlib.result}. *)
     val from_file_result : string -> (t, string) result
+
     val from_channel_result : in_channel -> (t, string) result
+
     val from_string_result : string -> (t, string) result
 
     (** Converts the value attached to a {!Parse_error} exception
@@ -138,8 +140,13 @@ module type TomlImplementation = sig
       values instead of exceptions, you can use {!get_opt} and {!get_result} combinators.
    *)
 
+  (** The trivial accessor that returns the unwrapped TOML value. *)
   val get_value : t -> t
+
   val get_table : t -> (string * t) list
+
+  (** Unwraps a table and applies an accessor to the values of its fields,
+      useful for unwrapping tables with homogenous field types in a single step. *)
   val get_table_values : (t -> 'a) -> t -> (string * 'a) list
 
   (** Converts a TOML array to a list of OCaml values by applying
@@ -189,19 +196,43 @@ module type TomlImplementation = sig
   val get_date : t -> toml_date
   val get_local_time : t -> toml_date
 
-  (** Combinators *)
+  (** {2 Combinators }
+
+      These combinators are mainly useful for unwrapping standalong TOML values by hand.
+      They handle the {!Type_error} exception and return [None] or [Error msg] when it occurs.
+
+      The high-level interface functions handle exceptions raised by accessors themselves.
+   *)
 
   val get_opt : ('a -> 'b) -> 'a -> 'b option
   val get_result : ('a -> 'b) -> 'a -> ('b, string) result
 
-  (** High-level interface *)
+  (** {2 High-level interface} *)
 
+  (** Returns [true] if there is a value at the specified path in a table.
+
+      For the purpose of this function, an empty table does exist,
+      i.e. if you have [foo.bar = {}], then [path_exists t ["foo"; "bar"]] is true.
+   *)
   val path_exists : t -> string list -> bool
 
+  (** Returns a list of all keys of a table, in their original order.
+
+      @raises {!Type_error} is the value is not a table.
+   *)
   val list_table_keys : t -> string list
+
   val list_table_keys_exn : t -> string list
+
   val list_table_keys_result : t -> (string list, string) result
 
+  (** Looks up a value in a table and unwraps it using an accessor function.
+
+      @raises {!Key_error} if there's no such key path in the table.
+
+      @raises {!Type_error} if the value itself is not a table or the field value
+      is not what the accessor expects.
+   *)
   val find : t -> (t -> 'a) -> string list -> 'a
 
   val find_exn : t -> (t -> 'a) -> string list -> 'a
@@ -212,6 +243,21 @@ module type TomlImplementation = sig
 
   val find_result : t -> (t -> 'a) -> string list -> ('a, string) result
 
+  (** Updates a table field at a specified path.
+
+      Passing [Some toml_value] inserts a new value or replaces an existing value.
+
+      If a key path partially does not exist, additional tables are created as needed.
+      For example, [update (TomlTable []) ["foo"; "bar"] (Some (TomlString "baz"]))]
+      will produce [TomlTable [("foo", TomlTable [("bar", TomlString "baz")])]].
+
+      The [use_inline_tables] flag determines whether automatically-created missing tables
+      will be normal or inline tables.
+
+      Passing [None] as the argument will delete the field at the specified path.
+      It's safe to attempt deleting values at paths that don't exist:
+      there will be no error and the original TOML will be returned unchanged.
+   *)
   val update : ?use_inline_tables:bool -> t -> string list -> t option -> t
 
   val update_result : ?use_inline_tables:bool -> t -> string list -> t option -> (t, string) result

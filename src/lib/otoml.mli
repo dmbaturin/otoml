@@ -1,12 +1,51 @@
 (** OTOML is a TOML parsing, manipulation, and pretty-printing library.
 
-    It's fully compliant with the TOML 1.0.0 specification
+    - Fully compliant with the TOML 1.0.0 specification
+    - Makes it easy to look up and modify deeply nested table fields
+    - Provides user-friendly syntax error reporting
+    - Avoids external dependencies, but provides a way for everyone to bring their own
+
+    Usage example:
+
+    {[
+      (* Parsing a TOML document with syntax errors. *)
+      utop # let t = Otoml.Parser.from_string_result "foo.bar.baz = " ;;
+      val t : (Otoml.t, string) result = Error
+        "Syntax error on line 1, character 15: Malformed key-value pair (missing value?)"
+
+      (* Parsing a valid document. *)
+      utop# let t = Otoml.Parser.from_string "foo.bar.baz = 42" ;;
+      val t : Otoml.t = Otoml.TomlTable [("foo",
+        Otoml.TomlTable [("bar",
+          Otoml.TomlTable [("baz", Otoml.TomlInteger 42)])])]
+
+      (* Retrieving a nested field, exact type match is expected by detault. *)
+      utop # Otoml.find_result t (Otoml.get_string) ["foo"; "bar"; "baz"] ;;
+      - : (string, string) result =
+      Error "Unexpected TOML value type at key foo.bar.baz: value must be a string, found integer"
+
+      (* Retrieving a field in non-strict mode (automatic type conversion). *)
+      utop # Otoml.find_result t (Otoml.get_string ~strict:false) ["foo"; "bar"; "baz"] ;;
+      - : (string, string) result = Ok "42"
+
+      (* Updating a field. *)
+      utop # Otoml.update_result t ["foo"; "bar"; "baz"] (Some (Otoml.string "quux")) ;;
+      - : (Otoml.t, string) result = Ok
+       (Otoml.TomlTable [("foo",
+         Otoml.TomlTable [("bar", Otoml.TomlTable [("baz", Otoml.TomlString "quux")])])])
+
+      (* Deleting a field. *)
+      utop # Otoml.update_result t ["foo"; "bar"; "baz"] None ;;
+      - : (Otoml.t, string) result =
+      Ok (Otoml.TomlTable [("foo", Otoml.TomlTable [("bar", Otoml.TomlTable [])])])
+
+     ]}
  *)
 
 (** {1 Default TOML implementation}
 
   The default implementation is meant to cover the majority of use cases without using
-  any dependencies outside of the OCaml's standard library.
+  any dependencies outside of the OCaml standard library.
 
   Numeric values are represented as native 31/63-bit integers and floats.
 
