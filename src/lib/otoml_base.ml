@@ -147,7 +147,13 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
       begin
         if strict then Printf.ksprintf type_error "value must be a float, found %s" (type_string t) else
         match t with
-        | TomlString s -> N.float_of_string s
+        | TomlString s ->
+          begin
+            try N.float_of_string s
+            with Failure _ -> Printf.ksprintf type_error
+              "string \"%s\" does not represent a valid floating point number"
+              (Utils.escape_string s)
+          end
         | TomlBoolean b -> N.float_of_boolean b
         | _ -> Printf.ksprintf type_error "cannot convert %s to float" (type_string t)
       end

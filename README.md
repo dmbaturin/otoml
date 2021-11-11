@@ -97,7 +97,7 @@ module DefaultToml = Otoml.Base.Make (Otoml.Base.OCamlNumber) (Otoml.Base.String
 
 Thus you can replace any of the modules or all of them with your own.
 For example, this is how you can use [zarith](https://opam.ocaml.org/packages/zarith/)
-and [decimal](https://opam.ocaml.org/packages/decimal/) for big numbers.
+and [decimal](https://opam.ocaml.org/packages/decimal/) for big numbers,
 but keep simple string dates:
 
 ```ocaml
@@ -129,12 +129,16 @@ module MyToml = Otoml.Base.Make (BigNumber) (Otoml.Base.StringDate)
 
 ## Deviations from the TOML 1.0 specification
 
-The default implementation is not completely compliant with the standard. These are the deviations:
+The default implementation is not fully compliant with the standard. These are the deviations:
 
 >Arbitrary 64-bit signed integers (from −2^63 to 2^63−1) should be accepted and handled losslessly.
 >If an integer cannot be represented losslessly, an error must be thrown.
 
 The default implementation uses OCaml's native integer type, which is 63-bit on 64-bit architectures and 31-bit on 32-bit ones.
+
+Numbers greater than maximum representable values will cause generic parse errors
+(`string ... does not represent a valid integer/floating point number`).
+More precise error message for that case may be added in the future.
 
 >To unambiguously represent a specific instant in time, you may use an RFC 3339 formatted date-time with offset.
 >Millisecond precision is required. Further precision of fractional seconds is implementation-specific.
