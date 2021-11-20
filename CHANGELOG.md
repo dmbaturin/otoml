@@ -10,9 +10,24 @@ The reason for that change is that for integer/float conversions to work, the mo
 both int and float types and provide conversion functions that involve both types.
 That change has no effect on the default implementation interface.
 
+### New features
+
+* `get_opt` and `get_result` combinators.
+* `get_table_values` for quickly retrieving unboxed values from homogemous tables.
+* `string_of_path : `
+* New `*_opt` and `*_result` versions of the high level interface functions and `*_exn` aliases.
+
 ### Bug fixes
 
-Accessors: fixed incorrect float to boolean conversion and added int/float conversions.
+* Accessors: fixed incorrect float to boolean conversion and added int/float conversions.
+* Exceptions are now correctly exposed in the functorial interface.
+* `path_exists` is correctly exposed now as well.
+* Integer and float implicit conversions in non-strict mode are now supported.
+
+### Internal changes
+
+* The lexer no longer uses internal mutable state so it's now re-entrant and (hopefully) thread-safe.
+* Modules signatures now use `include` to avoid copying large chunks, so the library is much easier to contribute to.
 
 ## 0.9.2
 
