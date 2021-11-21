@@ -53,7 +53,7 @@ utop # Otoml.find t Otoml.get_boolean ["settings"; "basic"; "crash_randomly"] ;;
 - : bool = true
 
 (* Update a deeply nested value. *)
-utop # let t = Otoml.update t ["settings"; "basic"; "crash_randomly"] (Some (Otoml.TomlInteger 0)) ;;
+utop # let t = Otoml.update t ["settings"; "basic"; "crash_randomly"] (Some (Otoml.integer 0)) ;;
 val t : Otoml.t =
   Otoml.TomlTable
    [("settings",
