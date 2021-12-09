@@ -35,6 +35,8 @@ It also offers a convenient interface for accessing and modifying values in deep
 ## Example
 
 ```ocaml
+utop # #require "otoml";;
+
 (* Parse a TOML string. *)
 
 utop # let t = Otoml.Parser.from_string "
@@ -149,3 +151,11 @@ only checks them for superficial validity and returns as strings.
 For example, "1993-09-947" is considered invalid (as expected), but 1993-02-29 is valid despite the fact that 1993 wasn't a leap year.
 
 Thus, actual precision depends on the library you use to parse those date strings or plug into the functor.
+
+## Users
+
+* [soupault](https://www.soupault.app) (static website framework based on HTML element tree rewriting)
+* [fromager](https://github.com/mimoo/fromager) (ocamlformat frontend)
+* [camyll](https://alan-j-hu.github.io/camyll) (static website generator with literate Agda support)
+* [dirsift](https://github.com/darrenldl/dirsift) (directory search utility)
+* [lab](https://github.com/tmcgilchrist/ocaml-gitlab) (GitLab CLI)
