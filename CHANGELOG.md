@@ -4,7 +4,7 @@
 
 ### Breaking changes
 
-The functor now takes a single `TomlNumber` module insteaf of independent `TomlInteger` and `TomlFloat`
+The functor now takes a single `TomlNumber` module instead of independent `TomlInteger` and `TomlFloat`
 modules.
 The reason for that change is that for integer/float conversions to work, the module needs to know
 both int and float types and provide conversion functions that involve both types.
