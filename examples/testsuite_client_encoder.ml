@@ -22,9 +22,19 @@ module BigNumber = struct
      would cause a signature mismatch. *)
   let float_of_string s = Decimal.of_string s
 
-  (* Decimal.to_string uses "NaN" spelling
-     while TOML requires all special float values to be lowercase. *)
-  let float_to_string x = Decimal.to_string x |> String.lowercase_ascii
+  (* Converting Decimal.t to a TOML value string takes some fixups.
+
+     First, Decimal.to_string uses "NaN" spelling
+     while TOML requires all special float values to be lowercase.
+
+     Second, it uses "Infinity" rather than "inf" for infinite numbers,
+     while TOML requires "inf".
+   *)
+  let float_to_string f =
+    if f = Decimal.infinity then "inf"
+    else if f = Decimal.neg_infinity then "-inf"
+    else Decimal.to_string f |> String.lowercase_ascii
+
   let float_of_boolean b = if b then Decimal.one else Decimal.zero
   let float_to_boolean x = (x <> Decimal.zero)
 

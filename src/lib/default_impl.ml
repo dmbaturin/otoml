@@ -17,7 +17,18 @@ module OCamlNumber = struct
      which is why the normalize function is needed.
    *)
   let float_of_string x = float_of_string x |> normalize_nan
-  let float_to_string x = Printf.sprintf "%.2f" x
+
+  (* string_of_float would be sufficient because its outputs
+     as of OCaml 4.12 are exactly what TOML uses: nan, inf, -inf
+
+     However, it's probably better to account for possible breaking changes
+     in the future, or for default float functions to be shadowed by
+     an alternative implementation, than to risk breakage.
+   *)
+  let float_to_string x =
+    if x = infinity then "inf"
+    else if x = neg_infinity then "-inf"
+    else Printf.sprintf "%.2f" x |> String.lowercase_ascii
 
   let float_to_boolean x =
     not (x = 0.0)
