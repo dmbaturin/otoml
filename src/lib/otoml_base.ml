@@ -182,26 +182,66 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
 
   let get_value t = t
 
-  let get_offset_datetime t =
+  let get_offset_datetime ?(strict=true) t =
     match t with
     | TomlOffsetDateTime dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be an offset datetime, found %s" (type_string t)
+    | _ as v->
+      begin
+        if strict then Printf.ksprintf type_error "value must be an offset datetime, found %s" (type_string t) else
+        match v with
+        | TomlString s ->
+          (try D.offset_datetime_of_string s
+           with Failure msg -> Printf.ksprintf type_error "failed to convert %s to offset datetime: %s" s msg)
+        | _ -> Printf.ksprintf type_error "cannot convert %s to offset datetime" (type_string v)
+      end
 
-  let get_local_datetime t =
+  let get_local_datetime ?(strict=true) t =
     match t with
     | TomlLocalDateTime dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be a local datetime, found %s" (type_string t)
+    | _ as v ->
+      begin
+        if strict then Printf.ksprintf type_error "value must be a local datetime, found %s" (type_string t) else
+        match v with
+        | TomlString s ->
+          (try D.local_datetime_of_string s
+           with Failure msg -> Printf.ksprintf type_error "failed to convert %s to local datetime: %s" s msg)
+        | _ -> Printf.ksprintf type_error "cannot convert %s to local datetime" (type_string v)
+      end
+
+  let get_local_date ?(strict=true) t =
+    match t with
+    | TomlLocalDate dt -> dt
+    | _ as v ->
+      begin
+        if strict then Printf.ksprintf type_error "value must be a local date, found %s" (type_string t) else
+        match v with
+        | TomlString s ->
+          (try D.local_date_of_string s
+           with Failure msg -> Printf.ksprintf type_error "failed to convert %s to local date: %s" s msg)
+        | _ -> Printf.ksprintf type_error "cannot convert %s to local date" (type_string v)
+      end
+
+  let get_local_time ?(strict=true) t =
+    match t with
+    | TomlLocalTime dt -> dt
+    | _ as v -> 
+      begin
+        if strict then Printf.ksprintf type_error "value must be a local time, found %s" (type_string t) else
+        match v with
+        | TomlString s ->
+          (try D.local_time_of_string s
+           with Failure msg -> Printf.ksprintf type_error "failed to convert %s to local time: %s" s msg)
+        | _ -> Printf.ksprintf type_error "cannot convert %s to local time" (type_string v)
+      end
+
+  (* Datetime retrieval convenience functions *)
 
   let get_datetime t =
     match t with
     | TomlOffsetDateTime dt -> dt
     | TomlLocalDateTime dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be a datetime, found %s" (type_string t)
-
-  let get_local_date t =
-    match t with
-    | TomlLocalDate dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be a local date, found %s" (type_string t)
+    | _ ->
+        Printf.ksprintf type_error "value must be a datetime (local or offset), found %s" (type_string t)
 
   let get_date t =
     match t with
@@ -209,11 +249,6 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
     | TomlLocalDateTime dt -> dt
     | TomlLocalDate dt -> dt
     | _ -> Printf.ksprintf type_error "value must be a date or datetime, found %s" (type_string t)
-
-  let get_local_time t =
-    match t with
-    | TomlLocalTime dt -> dt
-    | _ -> Printf.ksprintf type_error "value must be a local time, found %s" (type_string t)
 
   (* Combinators *)
 

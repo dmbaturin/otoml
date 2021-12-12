@@ -189,12 +189,23 @@ module type TomlImplementation = sig
    *)
   val get_boolean : ?strict:bool -> t -> bool
 
-  val get_offset_datetime : t -> toml_date
-  val get_local_datetime : t -> toml_date
+  (** In non-strict mode, these functions will try to convert strings to dates.
+
+      In the default implementation dates are represented as strings,
+      so the conversion is a no-op.
+
+      They will handle the {!Stdlib.Failure} exception raised by string to datetime
+      conversion functions. Thus if you supply your own datetime module
+      to the functorial interface, you may want to catch exceptions raised by your
+      library of choice and re-raise them as [Failure].
+   *)
+  val get_offset_datetime : ?strict:bool -> t -> toml_date
+  val get_local_datetime : ?strict:bool -> t -> toml_date
+  val get_local_date : ?strict:bool -> t -> toml_date
+  val get_local_time : ?strict:bool -> t -> toml_date
+
   val get_datetime : t -> toml_date
-  val get_local_date : t -> toml_date
   val get_date : t -> toml_date
-  val get_local_time : t -> toml_date
 
   (** {2 Combinators }
 
