@@ -280,5 +280,505 @@ module type TomlImplementation = sig
       for example, [["foo"; "bar baz"; "quux"]] gives [foo."bar baz".quux].
    *)
   val string_of_path : string list -> string
+
+  module Helpers : sig
+    (** {4 string value lookup} *)
+
+    (** Looks up an string at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an string
+        or (when used with [~strict:false], if it cannot be converted to string.
+     *)
+    val find_string : ?strict:bool -> t -> string list -> string
+
+    (** Alias for {!find_string} *)
+    val find_string_exn : ?strict:bool -> t -> string list -> string
+
+    (** Looks up an string at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an string
+        or (when used with [~strict:false], if it cannot be converted to string.
+     *)
+    val find_string_opt : ?strict:bool -> t -> string list -> string option
+
+    (** Looks up an string at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither an string nor (with [~strict:false])
+        a value that can be converted to string.
+     *)
+    val find_string_result : ?strict:bool -> t -> string list -> (string, string) result
+
+    (** {4 string array value lookup
+
+        Note: for all functions that look up arrays, [~strict:true] applies only to array item conversion.
+
+        With [~strict:true] they will fail if an array contains a value that is not an string, while with [~strict:false]
+        it will attempt to convert values (i.e. pass [~strict:false] to the accessor function).
+
+        If a user supplies a single string value instead of an array, it will always be converted to a single-item array.
+     *)
+
+    (** Looks up an array of strings at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an array of strings
+        or (when used with [~strict:false], if it cannot be converted to an array of strings.
+     *)
+    val find_strings : ?strict:bool -> t -> string list -> string list
+
+    (** Alias for {!find_strings} *)
+    val find_strings_exn : ?strict:bool -> t -> string list -> string list
+
+    (** Looks up an array of strings at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an string or an array of strings
+        or (when used with [~strict:false], if it cannot be converted to an array of strings.
+     *)
+    val find_strings_opt : ?strict:bool -> t -> string list -> string list option
+
+    (** Looks up an array of strings at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither an string or an array of strings, nor (with [~strict:false])
+        a value that can be converted to an array of strings.
+     *)
+    val find_strings_result : ?strict:bool -> t -> string list -> (string list, string) result
+
+
+    (** {4 Integer value lookup} *)
+
+    (** Looks up an integer at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an integer
+        or (when used with [~strict:false], if it cannot be converted to integer.
+     *)
+    val find_integer : ?strict:bool -> t -> string list -> toml_integer
+
+    (** Alias for {!find_integer} *)
+    val find_integer_exn : ?strict:bool -> t -> string list -> toml_integer
+
+    (** Looks up an integer at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an integer
+        or (when used with [~strict:false], if it cannot be converted to integer.
+     *)
+    val find_integer_opt : ?strict:bool -> t -> string list -> toml_integer option
+
+    (** Looks up an integer at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither an integer nor (with [~strict:false])
+        a value that can be converted to integer.
+     *)
+    val find_integer_result : ?strict:bool -> t -> string list -> (toml_integer, string) result
+
+    (** {4 Integer array value lookup
+
+        Note: for all functions that look up arrays, [~strict:true] applies only to array item conversion.
+
+        With [~strict:true] they will fail if an array contains a value that is not an integer, while with [~strict:false]
+        it will attempt to convert values (i.e. pass [~strict:false] to the accessor function).
+
+        If a user supplies a single integer value instead of an array, it will always be converted to a single-item array.
+     *)
+
+    (** Looks up an array of integers at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an array of integers
+        or (when used with [~strict:false], if it cannot be converted to an array of integers.
+     *)
+    val find_integers : ?strict:bool -> t -> string list -> toml_integer list
+
+    (** Alias for {!find_integers} *)
+    val find_integers_exn : ?strict:bool -> t -> string list -> toml_integer list
+
+    (** Looks up an array of integers at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an integer or an array of integers
+        or (when used with [~strict:false], if it cannot be converted to an array of integers.
+     *)
+    val find_integers_opt : ?strict:bool -> t -> string list -> toml_integer list option
+
+    (** Looks up an array of integers at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither an integer or an array of integers, nor (with [~strict:false])
+        a value that can be converted to an array of integers.
+     *)
+    val find_integers_result : ?strict:bool -> t -> string list -> (toml_integer list, string) result
+
+    (** {4 float value lookup} *)
+
+    (** Looks up an float at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an float
+        or (when used with [~strict:false], if it cannot be converted to float.
+     *)
+    val find_float : ?strict:bool -> t -> string list -> toml_float
+
+    (** Alias for {!find_float} *)
+    val find_float_exn : ?strict:bool -> t -> string list -> toml_float
+
+    (** Looks up an float at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an float
+        or (when used with [~strict:false], if it cannot be converted to float.
+     *)
+    val find_float_opt : ?strict:bool -> t -> string list -> toml_float option
+
+    (** Looks up an float at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither an float nor (with [~strict:false])
+        a value that can be converted to float.
+     *)
+    val find_float_result : ?strict:bool -> t -> string list -> (toml_float, string) result
+
+    (** {4 float array value lookup
+
+        Note: for all functions that look up arrays, [~strict:true] applies only to array item conversion.
+
+        With [~strict:true] they will fail if an array contains a value that is not an float, while with [~strict:false]
+        it will attempt to convert values (i.e. pass [~strict:false] to the accessor function).
+
+        If a user supplies a single float value instead of an array, it will always be converted to a single-item array.
+     *)
+
+    (** Looks up an array of floats at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an array of floats
+        or (when used with [~strict:false], if it cannot be converted to an array of floats.
+     *)
+    val find_floats : ?strict:bool -> t -> string list -> toml_float list
+
+    (** Alias for {!find_floats} *)
+    val find_floats_exn : ?strict:bool -> t -> string list -> toml_float list
+
+    (** Looks up an array of floats at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an float or an array of floats
+        or (when used with [~strict:false], if it cannot be converted to an array of floats.
+     *)
+    val find_floats_opt : ?strict:bool -> t -> string list -> toml_float list option
+
+    (** Looks up an array of floats at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither an float or an array of floats, nor (with [~strict:false])
+        a value that can be converted to an array of floats.
+     *)
+    val find_floats_result : ?strict:bool -> t -> string list -> (toml_float list, string) result
+
+    (** {4 boolean value lookup} *)
+
+    (** Looks up a boolean at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a boolean
+        or (when used with [~strict:false], if it cannot be converted to boolean.
+     *)
+    val find_boolean : ?strict:bool -> t -> string list -> bool
+
+    (** Alias for {!find_boolean} *)
+    val find_boolean_exn : ?strict:bool -> t -> string list -> bool
+
+    (** Looks up a boolean at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a boolean
+        or (when used with [~strict:false], if it cannot be converted to boolean.
+     *)
+    val find_boolean_opt : ?strict:bool -> t -> string list -> bool option
+
+    (** Looks up a boolean at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither a boolean nor (with [~strict:false])
+        a value that can be converted to boolean.
+     *)
+    val find_boolean_result : ?strict:bool -> t -> string list -> (bool, string) result
+
+    (** {4 boolean array value lookup
+
+        Note: for all functions that look up arrays, [~strict:true] applies only to array item conversion.
+
+        With [~strict:true] they will fail if an array contains a value that is not a boolean, while with [~strict:false]
+        it will attempt to convert values (i.e. pass [~strict:false] to the accessor function).
+
+        If a user supplies a single boolean value instead of an array, it will always be converted to a single-item array.
+     *)
+
+    (** Looks up an array of booleans at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an array of booleans
+        or (when used with [~strict:false], if it cannot be converted to an array of booleans.
+     *)
+    val find_booleans : ?strict:bool -> t -> string list -> bool list
+
+    (** Alias for {!find_booleans} *)
+    val find_booleans_exn : ?strict:bool -> t -> string list -> bool list
+
+    (** Looks up an array of booleans at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a boolean or an array of booleans
+        or (when used with [~strict:false], if it cannot be converted to an array of booleans.
+     *)
+    val find_booleans_opt : ?strict:bool -> t -> string list -> bool list option
+
+    (** Looks up an array of booleans at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither a boolean or an array of booleans, nor (with [~strict:false])
+        a value that can be converted to an array of booleans.
+     *)
+    val find_booleans_result : ?strict:bool -> t -> string list -> (bool list, string) result
+
+    (** {4 offset_datetime value lookup} *)
+
+    (** Looks up an offset_datetime at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an offset datetime
+        or (when used with [~strict:false], if it cannot be converted to offset datetime.
+     *)
+    val find_offset_datetime : ?strict:bool -> t -> string list -> toml_date
+
+    (** Alias for {!find_offset_datetime} *)
+    val find_offset_datetime_exn : ?strict:bool -> t -> string list -> toml_date
+
+    (** Looks up an offset_datetime at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an offset datetime
+        or (when used with [~strict:false], if it cannot be converted to offset datetime.
+     *)
+    val find_offset_datetime_opt : ?strict:bool -> t -> string list -> toml_date option
+
+    (** Looks up an offset_datetime at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither an offset_datetime nor (with [~strict:false])
+        a value that can be converted to offset_datetime.
+     *)
+    val find_offset_datetime_result : ?strict:bool -> t -> string list -> (toml_date, string) result
+
+    (** {4 offset_datetime array value lookup
+
+        Note: for all functions that look up arrays, [~strict:true] applies only to array item conversion.
+
+        With [~strict:true] they will fail if an array contains a value that is not an offset datetime, while with [~strict:false]
+        it will attempt to convert values (i.e. pass [~strict:false] to the accessor function).
+
+        If a user supplies a single offset_datetime value instead of an array, it will always be converted to a single-item array.
+     *)
+
+    (** Looks up an array of offset_datetimes at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an array of offset_datetimes
+        or (when used with [~strict:false], if it cannot be converted to an array of offset_datetimes.
+     *)
+    val find_offset_datetimes : ?strict:bool -> t -> string list -> toml_date list
+
+    (** Alias for {!find_offset_datetimes} *)
+    val find_offset_datetimes_exn : ?strict:bool -> t -> string list -> toml_date list
+
+    (** Looks up an array of offset_datetimes at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an offset datetime or an array of offset datetimes
+        or (when used with [~strict:false], if it cannot be converted to an array of offset datetimes.
+     *)
+    val find_offset_datetimes_opt : ?strict:bool -> t -> string list -> toml_date list option
+
+    (** Looks up an array of offset_datetimes at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither an offset datetime or an array of offset datetimes, nor (with [~strict:false])
+        a value that can be converted to an array of offset_datetimes.
+     *)
+    val find_offset_datetimes_result : ?strict:bool -> t -> string list -> (toml_date list, string) result
+
+    (** {4 local_datetime value lookup} *)
+
+    (** Looks up a local_datetime at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a local datetime
+        or (when used with [~strict:false], if it cannot be converted to local datetime.
+     *)
+    val find_local_datetime : ?strict:bool -> t -> string list -> toml_date
+
+    (** Alias for {!find_local_datetime} *)
+    val find_local_datetime_exn : ?strict:bool -> t -> string list -> toml_date
+
+    (** Looks up a local_datetime at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a local datetime
+        or (when used with [~strict:false], if it cannot be converted to local datetime.
+     *)
+    val find_local_datetime_opt : ?strict:bool -> t -> string list -> toml_date option
+
+    (** Looks up a local_datetime at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither a local datetime nor (with [~strict:false])
+        a value that can be converted to local datetime.
+     *)
+    val find_local_datetime_result : ?strict:bool -> t -> string list -> (toml_date, string) result
+
+    (** {4 local_datetime array value lookup
+
+        Note: for all functions that look up arrays, [~strict:true] applies only to array item conversion.
+
+        With [~strict:true] they will fail if an array contains a value that is not a local datetime, while with [~strict:false]
+        it will attempt to convert values (i.e. pass [~strict:false] to the accessor function).
+
+        If a user supplies a single local_datetime value instead of an array, it will always be converted to a single-item array.
+     *)
+
+    (** Looks up an array of local_datetimes at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an array of local datetimes
+        or (when used with [~strict:false], if it cannot be converted to an array of local datetimes.
+     *)
+    val find_local_datetimes : ?strict:bool -> t -> string list -> toml_date list
+
+    (** Alias for {!find_local_datetimes} *)
+    val find_local_datetimes_exn : ?strict:bool -> t -> string list -> toml_date list
+
+    (** Looks up an array of local_datetimes at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a local datetime or an array of local datetimes
+        or (when used with [~strict:false], if it cannot be converted to an array of local_datetimes.
+     *)
+    val find_local_datetimes_opt : ?strict:bool -> t -> string list -> toml_date list option
+
+    (** Looks up an array of local_datetimes at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither a local datetime or an array of local datetimes, nor (with [~strict:false])
+        a value that can be converted to an array of local_datetimes.
+     *)
+    val find_local_datetimes_result : ?strict:bool -> t -> string list -> (toml_date list, string) result
+
+    (** {4 local_date value lookup} *)
+
+    (** Looks up a local_date at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a local_date
+        or (when used with [~strict:false], if it cannot be converted to local_date.
+     *)
+    val find_local_date : ?strict:bool -> t -> string list -> toml_date
+
+    (** Alias for {!find_local_date} *)
+    val find_local_date_exn : ?strict:bool -> t -> string list -> toml_date
+
+    (** Looks up a local_date at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a local_date
+        or (when used with [~strict:false], if it cannot be converted to local_date.
+     *)
+    val find_local_date_opt : ?strict:bool -> t -> string list -> toml_date option
+
+    (** Looks up a local_date at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither a local_date nor (with [~strict:false])
+        a value that can be converted to local_date.
+     *)
+    val find_local_date_result : ?strict:bool -> t -> string list -> (toml_date, string) result
+
+    (** {4 local_date array value lookup
+
+        Note: for all functions that look up arrays, [~strict:true] applies only to array item conversion.
+
+        With [~strict:true] they will fail if an array contains a value that is not a local date, while with [~strict:false]
+        it will attempt to convert values (i.e. pass [~strict:false] to the accessor function).
+
+        If a user supplies a single local_date value instead of an array, it will always be converted to a single-item array.
+     *)
+
+    (** Looks up an array of local_dates at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an array of local dates
+        or (when used with [~strict:false], if it cannot be converted to an array of local dates.
+     *)
+    val find_local_dates : ?strict:bool -> t -> string list -> toml_date list
+
+    (** Alias for {!find_local_dates} *)
+    val find_local_dates_exn : ?strict:bool -> t -> string list -> toml_date list
+
+    (** Looks up an array of local_dates at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a local date or an array of local dates
+        or (when used with [~strict:false], if it cannot be converted to an array of local dates.
+     *)
+    val find_local_dates_opt : ?strict:bool -> t -> string list -> toml_date list option
+
+    (** Looks up an array of local_dates at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither a local_date or an array of local_dates, nor (with [~strict:false])
+        a value that can be converted to an array of local_dates.
+     *)
+    val find_local_dates_result : ?strict:bool -> t -> string list -> (toml_date list, string) result
+
+    (** {4 local_time value lookup} *)
+
+    (** Looks up a local_time at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a local_time
+        or (when used with [~strict:false], if it cannot be converted to local time.
+     *)
+    val find_local_time : ?strict:bool -> t -> string list -> toml_date
+
+    (** Alias for {!find_local_time} *)
+    val find_local_time_exn : ?strict:bool -> t -> string list -> toml_date
+
+    (** Looks up a local_time at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a local time
+        or (when used with [~strict:false], if it cannot be converted to local_time.
+     *)
+    val find_local_time_opt : ?strict:bool -> t -> string list -> toml_date option
+
+    (** Looks up a local_time at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither a local time nor (with [~strict:false])
+        a value that can be converted to local_time.
+     *)
+    val find_local_time_result : ?strict:bool -> t -> string list -> (toml_date, string) result
+
+    (** {4 local_time array value lookup
+
+        Note: for all functions that look up arrays, [~strict:true] applies only to array item conversion.
+
+        With [~strict:true] they will fail if an array contains a value that is not a local time, while with [~strict:false]
+        it will attempt to convert values (i.e. pass [~strict:false] to the accessor function).
+
+        If a user supplies a single local time value instead of an array, it will always be converted to a single-item array.
+     *)
+
+    (** Looks up an array of local_times at specified path.
+
+        @raises {!Key_error} if there's no such key path in the table.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not an array of local times
+        or (when used with [~strict:false], if it cannot be converted to an array of local times.
+     *)
+    val find_local_times : ?strict:bool -> t -> string list -> toml_date list
+
+    (** Alias for {!find_local_times} *)
+    val find_local_times_exn : ?strict:bool -> t -> string list -> toml_date list
+
+    (** Looks up an array of local_times at specified path, returns [None] if path does not exist.
+
+        @raises {!Type_error} if the value itself is not a table or the field value is not a local time or an array of local times
+        or (when used with [~strict:false], if it cannot be converted to an array of local_times.
+     *)
+    val find_local_times_opt : ?strict:bool -> t -> string list -> toml_date list option
+
+    (** Looks up an array of local_times at specified path, returns an [Error] with a descriptive message
+        if path does not exist or the value is neither a local time or an array of local_times, nor (with [~strict:false])
+        a value that can be converted to an array of local times.
+     *)
+    val find_local_times_result : ?strict:bool -> t -> string list -> (toml_date list, string) result
+
+  end
 end
 

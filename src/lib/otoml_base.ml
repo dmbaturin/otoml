@@ -843,5 +843,136 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
       | Parse_error (pos, err) -> Error (format_parse_error pos err)
       | Sys_error err -> Error err
       | Failure err -> Error (Printf.sprintf "otoml internal error: %s" err)
- end
+  end
+
+  module Helpers = struct
+    let find_string ?(strict=true) toml path = find toml (get_string ~strict:strict) path
+    let find_string_exn ?(strict=true) toml path = find toml (get_string ~strict:strict) path
+    let find_string_opt ?(strict=true) toml path = find_opt toml (get_string ~strict:strict) path
+    let find_string_result ?(strict=true) toml path = find_result toml (get_string ~strict:strict ) path
+    let find_string_default ?(strict=true) ~default toml path =
+      try find toml (get_string ~strict:strict) path
+      with Key_error _ -> default
+
+    let find_strings ?(strict=true) toml path = find toml (get_array ~strict:false (get_string ~strict:strict)) path
+    let find_strings_exn ?(strict=true) toml path = find toml (get_array ~strict:false (get_string ~strict:strict)) path
+    let find_strings_opt ?(strict=true) toml path = find_opt toml (get_array ~strict:false (get_string ~strict:strict)) path
+    let find_strings_result ?(strict=true) toml path = find_result toml (get_array ~strict:false (get_string ~strict:strict)) path
+    let find_strings_default ?(strict=true) ~default toml path =
+      try find toml (get_array ~strict:false (get_string ~strict:strict)) path
+      with Key_error _ -> default
+
+    let find_integer ?(strict=true) toml path = find toml (get_integer ~strict:strict) path
+    let find_integer_exn ?(strict=true) toml path = find toml (get_integer ~strict:strict) path
+    let find_integer_opt ?(strict=true) toml path = find_opt toml (get_integer ~strict:strict) path
+    let find_integer_result ?(strict=true) toml path = find_result toml (get_integer ~strict:strict ) path
+    let find_integer_default ?(strict=true) ~default toml path =
+      try find toml (get_integer ~strict:strict) path
+      with Key_error _ -> default
+
+    let find_integers ?(strict=true) toml path = find toml (get_array ~strict:false (get_integer ~strict:strict)) path
+    let find_integers_exn ?(strict=true) toml path = find toml (get_array ~strict:false (get_integer ~strict:strict)) path
+    let find_integers_opt ?(strict=true) toml path = find_opt toml (get_array ~strict:false (get_integer ~strict:strict)) path
+    let find_integers_result ?(strict=true) toml path = find_result toml (get_array ~strict:false (get_integer ~strict:strict)) path
+    let find_integers_default ?(strict=true) ~default toml path =
+      try find toml (get_array ~strict:false (get_integer ~strict:strict)) path
+      with Key_error _ -> default
+
+    let find_float ?(strict=true) toml path = find toml (get_float ~strict:strict) path
+    let find_float_exn ?(strict=true) toml path = find toml (get_float ~strict:strict) path
+    let find_float_opt ?(strict=true) toml path = find_opt toml (get_float ~strict:strict) path
+    let find_float_result ?(strict=true) toml path = find_result toml (get_float ~strict:strict ) path
+    let find_float_default ?(strict=true) ~default toml path =
+      try find toml (get_float ~strict:strict) path
+      with Key_error _ -> default
+
+    let find_floats ?(strict=true) toml path = find toml (get_array ~strict:false (get_float ~strict:strict)) path
+    let find_floats_exn ?(strict=true) toml path = find toml (get_array ~strict:false (get_float ~strict:strict)) path
+    let find_floats_opt ?(strict=true) toml path = find_opt toml (get_array ~strict:false (get_float ~strict:strict)) path
+    let find_floats_result ?(strict=true) toml path = find_result toml (get_array ~strict:false (get_float ~strict:strict)) path
+    let find_floats_default ?(strict=true) ~default toml path =
+      try find toml (get_array ~strict:false (get_float ~strict:strict)) path
+      with Key_error _ -> default
+
+    let find_boolean ?(strict=true) toml path = find toml (get_boolean ~strict:strict) path
+    let find_boolean_exn ?(strict=true) toml path = find toml (get_boolean ~strict:strict) path
+    let find_boolean_opt ?(strict=true) toml path = find_opt toml (get_boolean ~strict:strict) path
+    let find_boolean_result ?(strict=true) toml path = find_result toml (get_boolean ~strict:strict ) path
+    let find_boolean_default ?(strict=true) ~default toml path =
+      try find toml (get_boolean ~strict:strict) path
+      with Key_error _ -> default
+
+    let find_booleans ?(strict=true) toml path = find toml (get_array ~strict:false (get_boolean ~strict:strict)) path
+    let find_booleans_exn ?(strict=true) toml path = find toml (get_array ~strict:false (get_boolean ~strict:strict)) path
+    let find_booleans_opt ?(strict=true) toml path = find_opt toml (get_array ~strict:false (get_boolean ~strict:strict)) path
+    let find_booleans_result ?(strict=true) toml path = find_result toml (get_array ~strict:false (get_boolean ~strict:strict)) path
+    let find_booleans_default ?(strict=true) ~default toml path =
+      try find toml (get_array ~strict:false (get_boolean ~strict:strict)) path
+      with Key_error _ -> default
+
+    let find_offset_datetime ?(strict=true) toml path = find toml (get_offset_datetime ~strict:strict) path
+    let find_offset_datetime_exn ?(strict=true) toml path = find toml (get_offset_datetime ~strict:strict) path
+    let find_offset_datetime_opt ?(strict=true) toml path = find_opt toml (get_offset_datetime ~strict:strict) path
+    let find_offset_datetime_result ?(strict=true) toml path = find_result toml (get_offset_datetime ~strict:strict ) path
+    let find_offset_datetime_default ?(strict=true) ~default toml path =
+      try find toml (get_offset_datetime ~strict:strict) path
+      with Key_error _ -> default
+
+    let find_offset_datetimes ?(strict=true) toml path = find toml (get_array ~strict:false (get_offset_datetime ~strict:strict)) path
+    let find_offset_datetimes_exn ?(strict=true) toml path = find toml (get_array ~strict:false (get_offset_datetime ~strict:strict)) path
+    let find_offset_datetimes_opt ?(strict=true) toml path = find_opt toml (get_array ~strict:false (get_offset_datetime ~strict:strict)) path
+    let find_offset_datetimes_result ?(strict=true) toml path = find_result toml (get_array ~strict:false (get_offset_datetime ~strict:strict)) path
+    let find_offset_datetimes_default ?(strict=true) ~default toml path =
+      try find toml (get_array ~strict:false (get_offset_datetime ~strict:strict)) path
+      with Key_error _ -> default
+
+    let find_local_datetime ?(strict=true) toml path = find toml (get_local_datetime ~strict:strict) path
+    let find_local_datetime_exn ?(strict=true) toml path = find toml (get_local_datetime ~strict:strict) path
+    let find_local_datetime_opt ?(strict=true) toml path = find_opt toml (get_local_datetime ~strict:strict) path
+    let find_local_datetime_result ?(strict=true) toml path = find_result toml (get_local_datetime ~strict:strict ) path
+    let find_local_datetime_default ?(strict=true) ~default toml path =
+      try find toml (get_local_datetime ~strict:strict) path
+      with Key_error _ -> default
+
+    let find_local_datetimes ?(strict=true) toml path = find toml (get_array ~strict:false (get_local_datetime ~strict:strict)) path
+    let find_local_datetimes_exn ?(strict=true) toml path = find toml (get_array ~strict:false (get_local_datetime ~strict:strict)) path
+    let find_local_datetimes_opt ?(strict=true) toml path = find_opt toml (get_array ~strict:false (get_local_datetime ~strict:strict)) path
+    let find_local_datetimes_result ?(strict=true) toml path = find_result toml (get_array ~strict:false (get_local_datetime ~strict:strict)) path
+    let find_local_datetimes_default ?(strict=true) ~default toml path =
+      try find toml (get_array ~strict:false (get_local_datetime ~strict:strict)) path
+      with Key_error _ -> default
+
+    let find_local_date ?(strict=true) toml path = find toml (get_local_date ~strict:strict) path
+    let find_local_date_exn ?(strict=true) toml path = find toml (get_local_date ~strict:strict) path
+    let find_local_date_opt ?(strict=true) toml path = find_opt toml (get_local_date ~strict:strict) path
+    let find_local_date_result ?(strict=true) toml path = find_result toml (get_local_date ~strict:strict ) path
+    let find_local_date_default ?(strict=true) ~default toml path =
+      try find toml (get_local_date ~strict:strict) path
+      with Key_error _ -> default
+
+    let find_local_dates ?(strict=true) toml path = find toml (get_array ~strict:false (get_local_date ~strict:strict)) path
+    let find_local_dates_exn ?(strict=true) toml path = find toml (get_array ~strict:false (get_local_date ~strict:strict)) path
+    let find_local_dates_opt ?(strict=true) toml path = find_opt toml (get_array ~strict:false (get_local_date ~strict:strict)) path
+    let find_local_dates_result ?(strict=true) toml path = find_result toml (get_array ~strict:false (get_local_date ~strict:strict)) path
+    let find_local_dates_default ?(strict=true) ~default toml path =
+      try find toml (get_array ~strict:false (get_local_date ~strict:strict)) path
+      with Key_error _ -> default
+
+    let find_local_time ?(strict=true) toml path = find toml (get_local_time ~strict:strict) path
+    let find_local_time_exn ?(strict=true) toml path = find toml (get_local_time ~strict:strict) path
+    let find_local_time_opt ?(strict=true) toml path = find_opt toml (get_local_time ~strict:strict) path
+    let find_local_time_result ?(strict=true) toml path = find_result toml (get_local_time ~strict:strict ) path
+    let find_local_time_default ?(strict=true) ~default toml path =
+      try find toml (get_local_time ~strict:strict) path
+      with Key_error _ -> default
+
+    let find_local_times ?(strict=true) toml path = find toml (get_array ~strict:false (get_local_time ~strict:strict)) path
+    let find_local_times_exn ?(strict=true) toml path = find toml (get_array ~strict:false (get_local_time ~strict:strict)) path
+    let find_local_times_opt ?(strict=true) toml path = find_opt toml (get_array ~strict:false (get_local_time ~strict:strict)) path
+    let find_local_times_result ?(strict=true) toml path = find_result toml (get_array ~strict:false (get_local_time ~strict:strict)) path
+    let find_local_times_default ?(strict=true) ~default toml path =
+      try find toml (get_array ~strict:false (get_local_time ~strict:strict)) path
+      with Key_error _ -> default
+
+  end
 end
