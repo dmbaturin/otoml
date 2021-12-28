@@ -297,7 +297,7 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
     let make_dotted_path ps = Utils.string_of_path ps in
     let check_if_table k v =
       match v with
-      | TomlTable _ -> ()
+      | TomlTable _ | TomlInlineTable _ -> ()
       | _ as v ->
         Printf.ksprintf (fun s -> raise (Not_a_table s)) "value at field \"%s\" is %s, not a table"
           (Utils.make_printable_key k) (type_string v)
