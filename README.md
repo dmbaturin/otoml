@@ -10,8 +10,8 @@ In short:
 * Transparent (no abstract types).
 * Uses immutable data structures.
 * Easy access to deeply nested values.
-* Preserves the order of fields in tables.
-* Preserves original syntax variant (e.g. inline vs normal table) when parsing and printing.
+* Preserves the order of fields in tables (even though the spec doesn't require it).
+* Preserves the original syntax variant (e.g. inline vs normal table) when parsing and printing.
 * Flexible pretty-printing options.
 * Does not force a calendar or bignum library dependency on you (you can plug your own into the functor).
 
@@ -79,19 +79,26 @@ val t : unit = ()
 
 ## Bring your own dependencies
 
-The TOML specification requires support for datetime values and arbitrary large numbers.
-For a language that uses machine types and doesn't have datetime support in the standrad library,
+TOML specification requires support for datetime values and arbitrarily large numbers.
+
+For a language that uses machine types and doesn't have datetime support in the standrad library
 it means that implementations have to make a choice whether to be light on dependencies and easy to use
 or be standard-compliant.
 
-OTOML solves that problem with OCaml functors.
+OTOML solves that problem with OCaml functors (parameterized modules).
 
-The default implementation is provided for convenience: it represents integer and floating point numbers
-with OCaml's native `int` and `float` types, and stores date/time values as strings
-that you can parse with your favorite calendar library.
+A default implementation is provided for convenience. It only depends on the OCaml standard library.
 
-However, it's not hardcoded but built with a functor.
-This is how you could assemble the default implementation yourself.
+* Numbers are represented with OCaml's native `int` and `float` types.
+* Date and time values are validated but not parsed, represented as strings.
+
+If your application doesn't need large numbers and you either don't use datetime values
+or are ready to parse them yourself, it may be all you need.
+
+But if you do, you can bring your own dependencies because the default implementation is not hardcoded,
+it's just a predefined instance of a functor.
+
+This is how you could assemble the default implementation yourself:
 
 ```ocaml
 module DefaultToml = Otoml.Base.Make (Otoml.Base.OCamlNumber) (Otoml.Base.StringDate)
