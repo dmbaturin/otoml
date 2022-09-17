@@ -168,8 +168,8 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
 	| TomlString s -> (s = "")
 	| TomlInteger i -> N.int_to_boolean i
 	| TomlFloat f -> N.float_to_boolean f
-	| TomlArray a | TomlTableArray a -> (a = [])
-	| TomlTable o | TomlInlineTable o -> (o = [])
+	| TomlArray a | TomlTableArray a -> (a <> [])
+	| TomlTable o | TomlInlineTable o -> (o <> [])
 	| _ -> false
       end
 
