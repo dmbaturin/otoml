@@ -1,5 +1,19 @@
 # Changelog
 
+# 1.0.2
+
+* Correct logic for non-strict boolean retrieval (`[]` is no longer considered true).
+
+## 1.0.1
+
+* Fixed value lookup inside inline tables.
+
+## 1.0.0
+
+* String representations of special floating-point values (not a number, infinity) are compliant with the TOML spec.
+* Support for date to string conversions in accessors.
+* Multiple new helpers for easy lookup of values of various types.
+
 ## 0.9.3
 
 ### Breaking changes
