@@ -816,9 +816,7 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
 
     let from_file filename =
       let ic = open_in filename in
-      let t = from_channel ic in
-      let () = close_in ic in
-      t
+      Fun.protect ~finally:(fun () -> close_in ic) (fun () -> from_channel ic)
 
     let from_string s =
       let lexbuf = Lexing.from_string s in
