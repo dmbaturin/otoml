@@ -601,8 +601,8 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
       match MI.stack env with
       | lazy Nil -> "Invalid syntax"
       | lazy (Cons (MI.Element (state, _, _, _), _)) ->
-	  try (Toml_parser_messages.message (MI.number state)) with
-	  | Not_found -> "invalid syntax (no specific message for this eror)"
+	  try (String.trim (Toml_parser_messages.message (MI.number state))) with
+	  | Not_found -> "invalid syntax (no specific message for this error)"
 
     let rec _parse state lexbuf (checkpoint : (node list) MI.checkpoint ) =
       match checkpoint with
@@ -816,9 +816,7 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
 
     let from_file filename =
       let ic = open_in filename in
-      let t = from_channel ic in
-      let () = close_in ic in
-      t
+      Fun.protect ~finally:(fun () -> close_in ic) (fun () -> from_channel ic)
 
     let from_string s =
       let lexbuf = Lexing.from_string s in
