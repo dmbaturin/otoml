@@ -601,8 +601,8 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
       match MI.stack env with
       | lazy Nil -> "Invalid syntax"
       | lazy (Cons (MI.Element (state, _, _, _), _)) ->
-	  try (Toml_parser_messages.message (MI.number state)) with
-	  | Not_found -> "invalid syntax (no specific message for this eror)"
+	  try (String.trim (Toml_parser_messages.message (MI.number state))) with
+	  | Not_found -> "invalid syntax (no specific message for this error)"
 
     let rec _parse state lexbuf (checkpoint : (node list) MI.checkpoint ) =
       match checkpoint with
