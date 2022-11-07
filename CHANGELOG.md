@@ -1,5 +1,9 @@
 # Changelog
 
+# 1.0.3
+
+* Fix for a possible open file descriptor leak on errors (patch by Vincent Bernardoff).
+
 # 1.0.2
 
 * Correct logic for non-strict boolean retrieval (`[]` is no longer considered true).
