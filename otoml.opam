@@ -1,5 +1,5 @@
 opam-version: "2.0"
-version: "1.0.2"
+version: "1.0.3"
 maintainer: "daniil+opam@baturin.org"
 authors: ["Daniil Baturin <daniil+otoml@baturin.org>"]
 homepage: "https://github.com/dmbaturin/otoml"
