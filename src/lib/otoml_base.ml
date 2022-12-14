@@ -627,17 +627,17 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
     let check_duplicate p' p = 
       match p, p' with
       | TableHeader p, TableHeader p' ->
-	if p = p' then Printf.ksprintf (parse_error None) "table [%s] is defined more than once"
+	if p = p' then Printf.ksprintf duplicate_key_error "table [%s] is defined more than once"
 	  (Utils.string_of_path p)
       | TableHeader p, TableArrayHeader p' ->
 	if p = p' then
 	  let path_str = (Utils.string_of_path p) in
-	  Printf.ksprintf (parse_error None) "table [%s] is duplicated by an array of tables [[%s]]"
+	  Printf.ksprintf duplicate_key_error "table [%s] is duplicated by an array of tables [[%s]]"
 	    path_str path_str
       | TableArrayHeader p, TableHeader p' ->
 	if p = p' then
 	  let path_str = (Utils.string_of_path p) in
-	  Printf.ksprintf (parse_error None) "array of tables [[%s]] is duplicated by a table [%s]"
+	  Printf.ksprintf duplicate_key_error "array of tables [[%s]] is duplicated by a table [%s]"
 	    path_str path_str
       | _ -> ()
 
