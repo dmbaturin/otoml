@@ -826,6 +826,7 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
       try Ok (from_string s)
       with
       | Parse_error (pos, err) -> Error (format_parse_error pos err)
+      | Duplicate_key err -> Error err
       | Failure err -> Error (Printf.sprintf "otoml internal error: %s" err)
 
     let from_channel_result ic =
