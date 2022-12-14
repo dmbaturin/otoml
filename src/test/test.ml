@@ -5,7 +5,7 @@ module OT = Otoml
 (* The parser is tested with https://github.com/BurntSushi/toml-test
    so we don't add parser tests here. *) 
 
-let toml = Otoml.Parser.from_string "
+let toml = Otoml.Parser.from_string {|
 string_value = \"foo\"
 int_value = 42
 float_value = 42.0
@@ -15,7 +15,7 @@ value = 1
 
 [table.subtable]
 value = \"baz\"
-"
+|}
 
 (* High level interface tests *)
 
