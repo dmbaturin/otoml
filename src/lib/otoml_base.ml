@@ -590,9 +590,6 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
     open Lexing
     open Parser_utils
 
-    exception Duplicate_key of string
-
-    let duplicate_key_error msg = raise (Duplicate_key msg)
     let parse_error pos msg = raise (Parse_error (pos, msg))
 
     module MI = Toml_parser.MenhirInterpreter

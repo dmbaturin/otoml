@@ -53,6 +53,10 @@ module type TomlImplementation = sig
    *)
   exception Parse_error of ((int * int) option * string)
 
+  (** Raised when a table field or a table name is defined twice,
+      which is prohibited to the TOML standard. *)
+  exception Duplicate_key of string
+
   type t =
   | TomlString of string
   | TomlInteger of toml_integer
