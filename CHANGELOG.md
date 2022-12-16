@@ -1,5 +1,10 @@
 # Changelog
 
+# 1.0.4
+
+* `Parser.from_string_result` now handles `Duplicate_key` exceptions rather than lets them escape (#3, report by Ryan Moore).
+* `Duplicate_key` exception is now correctly exposed in the module interface.
+
 # 1.0.3
 
 * Fix for a possible open file descriptor leak on errors (patch by Vincent Bernardoff).
