@@ -127,7 +127,7 @@ module BigNumber = struct
      while TOML requires all special float values to be lowercase. *)
   let float_to_string x = Decimal.to_string x |> String.lowercase_ascii
   let float_of_boolean b = if b then Decimal.one else Decimal.zero
-  let float_to_boolean x = (x <> Decimal.zero)
+  let float_to_boolean x = Decimal.(x <> zero)
 
   let float_of_int = Decimal.of_bigint
   let int_of_float = Decimal.to_bigint
