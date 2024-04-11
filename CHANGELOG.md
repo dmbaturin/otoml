@@ -1,15 +1,22 @@
 # Changelog
 
-# 1.0.4
+## 1.0.5
+
+* Carriage return characters now work correctly in multi-line strings,
+  so files produced on Windows with CRLF newlines are parsed correctly
+  (report by Bohdan Kolesnikov)
+* Correct use of custom inequality functions in the example from the README (patch by Yawar Amin) 
+
+## 1.0.4
 
 * `Parser.from_string_result` now handles `Duplicate_key` exceptions rather than lets them escape (#3, report by Ryan Moore).
 * `Duplicate_key` exception is now correctly exposed in the module interface.
 
-# 1.0.3
+## 1.0.3
 
 * Fix for a possible open file descriptor leak on errors (patch by Vincent Bernardoff).
 
-# 1.0.2
+## 1.0.2
 
 * Correct logic for non-strict boolean retrieval (`[]` is no longer considered true).
 
