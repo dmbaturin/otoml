@@ -107,7 +107,7 @@ let trim_left_newline s =
     (* Is it a file with Windows newlines? *)
     if len > 1 then begin
       match (String.get s 1) with
-      | '\n' -> String.sub s 2 (len - 1)
+      | '\n' -> String.sub s 2 (len - 2)
       | _ ->
         (* Better not to think why a string starts with a \r then. *)
         s
