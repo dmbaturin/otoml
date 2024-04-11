@@ -37,7 +37,7 @@ jobs:
 
     - name: Run the TOML test suite
       env:
-        TESTSUITE_VERSION: v1.0.0
+        TESTSUITE_VERSION: v1.4.0
         PLATFORM: darwin-amd64
       run: |
         eval $(opam env)
@@ -50,7 +50,7 @@ jobs:
         ocamlfind ocamlopt -package otoml,zarith,decimal,yojson -linkpkg ./examples/testsuite_client_encoder.ml -o encoder
 
         # Download the test suite runner
-        wget https://github.com/BurntSushi/toml-test/releases/download/$TESTSUITE_VERSION/toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
+        wget https://github.com/toml-lang/toml-test/releases/download/$TESTSUITE_VERSION/toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
         gunzip toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
         chmod +x toml-test-$TESTSUITE_VERSION-$PLATFORM
         ./toml-test-$TESTSUITE_VERSION-$PLATFORM ./decoder
