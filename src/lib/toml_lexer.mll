@@ -593,7 +593,7 @@ and read_double_quoted_multiline_string state buf =
   | '\\' 't'  { Buffer.add_char buf '\t'; read_double_quoted_multiline_string state buf lexbuf }
   | '\\' '\'' { Buffer.add_char buf '\''; read_double_quoted_multiline_string state buf lexbuf }
   | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_multiline_string state buf lexbuf }
-  | '\\' [' ' '\t' '\n']* '\n' [' ' '\t' '\n']*
+  | '\\' [' ' '\t' '\r' '\n']* '\n' [' ' '\t' '\r' '\n']*
     {
       newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_multiline_string state buf lexbuf
     }
@@ -604,7 +604,7 @@ and read_double_quoted_multiline_string state buf =
       let msg = Printf.sprintf "\\%s is not a valid escape sequence" (Char.escaped invalid_escape_char) in
       lexing_error lexbuf msg
     }
-  | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F'] as bad_char
+  | ['\x00'-'\x08' '\x0B' '\x0C' '\x0E'-'\x1F' '\x7F'] as bad_char
     {
        lexing_error lexbuf @@
          Printf.sprintf "character '%s' is not allowed inside a string literal without escaping"
@@ -614,7 +614,7 @@ and read_double_quoted_multiline_string state buf =
     { Buffer.add_string buf "\""; move_position lexbuf (~-1); read_double_quoted_multiline_string state buf lexbuf }
   | '"' '"' [^ '"']
     { Buffer.add_string buf "\"\""; move_position lexbuf (~-1); read_double_quoted_multiline_string state buf lexbuf }
-  | [^ '"' '\x00'-'\x08' '\n' '\x0B'-'\x1F' '\x7F' '\\']+
+  | [^ '"' '\x00'-'\x08' '\x0B' '\x0C' '\x0E'-'\x1F' '\x7F' '\\']+
     {
       Buffer.add_string buf (Lexing.lexeme lexbuf); 
       read_double_quoted_multiline_string state buf lexbuf
@@ -636,14 +636,14 @@ and read_single_quoted_multiline_string state buf =
       (state, MULTILINE_STRING (Buffer.contents buf |> trim_left_newline))
     }
   | "'''"   { validate_unicode lexbuf @@ Buffer.contents buf; (state, MULTILINE_STRING (Buffer.contents buf |> trim_left_newline)) }
-  | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_single_quoted_multiline_string state buf lexbuf }
+  | '\\' [' ' '\t' '\r' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_single_quoted_multiline_string state buf lexbuf }
   | '\n'    { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_single_quoted_multiline_string state buf lexbuf }
-  | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F'] as bad_char
+  | ['\x00'-'\x08' '\x0B' '\x0C' '\x0E'-'\x1F' '\x7F'] as bad_char
     { lexing_error lexbuf @@
         Printf.sprintf "character '%s' is not allowed inside a string literal without escaping"
         (Char.escaped bad_char)
     }
-  | (''' [^ '''] | ''' ''' [^ ''']  | [^ ''' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F']+)
+  | (''' [^ '''] | ''' ''' [^ ''']  | [^ ''' '\x00'-'\x08' '\x0B' '\x0C' '\x0E'-'\x1F' '\x7F']+)
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
       read_single_quoted_multiline_string state buf lexbuf
     }
