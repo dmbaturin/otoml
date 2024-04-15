@@ -5,6 +5,7 @@
 * Carriage return characters now work correctly in multi-line strings,
   so files produced on Windows with CRLF newlines are parsed correctly
   (report by Bohdan Kolesnikov)
+* Files that consists of a single comment without a newline are handled correctly now.
 * Correct use of custom inequality functions in the example from the README (patch by Yawar Amin) 
 
 ## 1.0.4

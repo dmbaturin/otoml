@@ -508,6 +508,7 @@ and read_comment state buf =
       in
       token state lexbuf
     }
+  | eof { token state lexbuf }
   | [^ '\n' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F']+
     { Buffer.add_string buf (Lexing.lexeme lexbuf); read_comment state buf lexbuf }
 
