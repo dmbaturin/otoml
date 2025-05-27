@@ -1,5 +1,6 @@
 # OTOML
 
+![maintenance-status](https://img.shields.io/badge/maintenance-actively--developed-brightgreen.svg)
 ![CI](https://github.com/dmbaturin/otoml/actions/workflows/main.yml/badge.svg)
 
 A TOML parsing and manipulation library for OCaml.
