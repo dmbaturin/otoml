@@ -830,6 +830,7 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
       try Ok (from_channel ic)
       with
       | Parse_error (pos, err) -> Error (format_parse_error pos err)
+      | Duplicate_key err -> Error err
       | Sys_error err -> Error err
       | Failure err -> Error (Printf.sprintf "otoml internal error: %s" err)
 
@@ -837,6 +838,7 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
       try Ok (from_file f)
       with
       | Parse_error (pos, err) -> Error (format_parse_error pos err)
+      | Duplicate_key err -> Error err
       | Sys_error err -> Error err
       | Failure err -> Error (Printf.sprintf "otoml internal error: %s" err)
   end
