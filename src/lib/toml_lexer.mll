@@ -228,7 +228,7 @@ let t_hex_digit = ['0'-'9' 'a'-'f' 'A'-'F']
 let t_hex_integer_part = t_hex_digit ('_'? t_hex_digit+)*
 
 let t_integer =
-  (t_sign as integer_sign)? t_integer_part 
+  t_sign? t_integer_part
 | "0b" '0'* t_bin_integer_part
 | "0o" '0'* t_oct_integer_part
 | "0x" '0'* t_hex_integer_part
@@ -248,7 +248,7 @@ let t_float_number = t_integer_part ((t_fractional_part t_exponent?) | t_exponen
   +nan and -nan are both interpreted as just a nan
 
  *)
-let t_float = (t_sign as float_sign)? ((t_float_number | "nan" | "inf") as float_value)
+let t_float = t_sign? ((t_float_number | "nan" | "inf") as float_value)
 
 (* Date and time *)
 
@@ -419,15 +419,13 @@ rule token state = parse
 | t_integer as s
   {
     if not ((in_top_level state) || (in_inline_table state)) then (state, INTEGER s)
-    else if Option.is_some integer_sign then lexing_error lexbuf @@ Printf.sprintf "\"%s\" is not a valid key" s
     else (state, KEY(s))
   }
 | t_float as s
   {
     if not ((in_top_level state) || (in_inline_table state)) then (state, FLOAT s) else
     (* If we are in the top level context, it's a key that looks like a float. *)
-    if Option.is_some float_sign then lexing_error lexbuf @@ Printf.sprintf "\"%s\" is not a valid key" s
-    else match float_value with
+    match float_value with
     | "nan" | "inf" -> (state, KEY(float_value))
     | _ ->
       if Option.is_none @@ String.index_opt float_value '.' then (state, KEY(float_value)) else
