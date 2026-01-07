@@ -297,8 +297,11 @@ rule token state = parse
 
     match state with
     | (ConInlineTable :: _) | (ConInlineTableValue :: _) ->
-      (* Inside inline tables, newlines shouldn't occur at all. *)
-      lexing_error lexbuf "line breaks are not allowed inside inline tables"
+      (* Since TOML 1.1.0, line breaks are allowed in inline tables
+         between key-value pairs, but not inside key-value pairs.
+         We handle that at the parser level.
+       *)
+      (state, NEWLINE)
     | ConArray :: _ ->
       (* Inside arrays, newlines don't matter at all. *)
       token state lexbuf

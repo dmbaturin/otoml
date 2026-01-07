@@ -68,7 +68,7 @@ let item_sequence(Sep, X) :=
     { [] }
   | x = X; 
     { [x] }
-  | x = X; Sep; xs = item_sequence(Sep, X);
+  | x = X; Sep; NEWLINE*; xs = item_sequence(Sep, X);
     { x :: xs }
 
 array:
@@ -81,12 +81,8 @@ table_path:
 key_value_pair:
   | k = table_path; EQ; v = value; { (k, v) } 
 
-(* Unlike arrays, inline tables do not allow trailing commas and newlines inside
-   (for whatever reason, I hope TOML standard maintainers eventually reconsider it).
-   That's why we use an ordinary separated_list() here.
- *)
 inline_table:
-  | LEFT_BRACE; kvs = separated_list(COMMA, key_value_pair); RIGHT_BRACE { kvs }
+  | LEFT_BRACE; NEWLINE*; kvs = item_sequence(COMMA, key_value_pair); NEWLINE*; RIGHT_BRACE { kvs }
 
 (* Non-inline table handling *)
 

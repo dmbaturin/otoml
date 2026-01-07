@@ -1,219 +1,4 @@
-toml_ast: KEY DOT TABLE_HEADER_START
-# Known ways to trigger it:
-# "foo. = 1"
-# "[foo.]"
-
-##
-## Ends in an error in state: 11.
-##
-## separated_nonempty_list(DOT,key) -> key DOT . separated_nonempty_list(DOT,key) [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END EQ ]
-##
-## The known suffix of the stack is as follows:
-## key DOT
-##
-
-Unexpected '.' in a key.
-Examples of valid keys: "value", "table.subtable", "table.subtable.value"
-
-toml_ast: KEY EQ ARRAY_START STRING COMMA TABLE_HEADER_START
-# Known ways to trigger it:
-# "foo = [3,"
-
-##
-## Ends in an error in state: 37.
-##
-## item_sequence(COMMA,value) -> value COMMA . item_sequence(COMMA,value) [ ARRAY_END ]
-##
-## The known suffix of the stack is as follows:
-## value COMMA
-##
-
-Malformed array (missing closing square bracket?)
-
-toml_ast: KEY EQ ARRAY_START STRING TABLE_HEADER_START
-# Known ways to trigger it:
-# "foo = [3"
-
-##
-## Ends in an error in state: 36.
-##
-## item_sequence(COMMA,value) -> value . [ ARRAY_END ]
-## item_sequence(COMMA,value) -> value . COMMA item_sequence(COMMA,value) [ ARRAY_END ]
-##
-## The known suffix of the stack is as follows:
-## value
-##
-
-Malformed array (missing closing square bracket?)
-
-toml_ast: KEY EQ ARRAY_START TABLE_HEADER_START
-# Known ways to trigger it:
-# "foo = ["
-
-##
-## Ends in an error in state: 34.
-##
-## array -> ARRAY_START . ARRAY_END [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
-## array -> ARRAY_START . item_sequence(COMMA,value) ARRAY_END [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
-##
-## The known suffix of the stack is as follows:
-## ARRAY_START
-##
-
-Malformed array (missing closing square bracket?)
-
-toml_ast: KEY EQ LEFT_BRACE KEY EQ BOOLEAN COMMA TABLE_HEADER_START
-##
-## Ends in an error in state: 29.
-##
-## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair COMMA . separated_nonempty_list(COMMA,key_value_pair) [ RIGHT_BRACE ]
-##
-## The known suffix of the stack is as follows:
-## key_value_pair COMMA
-##
-
-Invalid syntax (state 29)
-
-toml_ast: KEY EQ LEFT_BRACE KEY EQ BOOLEAN TABLE_HEADER_START
-##
-## Ends in an error in state: 28.
-##
-## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . [ RIGHT_BRACE ]
-## separated_nonempty_list(COMMA,key_value_pair) -> key_value_pair . COMMA separated_nonempty_list(COMMA,key_value_pair) [ RIGHT_BRACE ]
-##
-## The known suffix of the stack is as follows:
-## key_value_pair
-##
-
-Invalid syntax (state 28)
-
-toml_ast: KEY EQ LEFT_BRACE TABLE_HEADER_START
-##
-## Ends in an error in state: 24.
-##
-## inline_table -> LEFT_BRACE . loption(separated_nonempty_list(COMMA,key_value_pair)) RIGHT_BRACE [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
-##
-## The known suffix of the stack is as follows:
-## LEFT_BRACE
-##
-
-Malformed inline table (missing closing brace?)
-
-toml_ast: KEY EQ TABLE_HEADER_START
-# Not sure why TABLE_HEADER_START is in the stack.
-# It seems to be the state entered when a key-value pair is missing a value.
-#
-# Known ways to trigger it:
-# "foo="
-# "foo = ]"
-# "foo= \n"
-
-##
-## Ends in an error in state: 17.
-##
-## key_value_pair -> table_path EQ . value [ RIGHT_BRACE NEWLINE EOF COMMA ]
-##
-## The known suffix of the stack is as follows:
-## table_path EQ
-##
-
-Malformed key-value pair (missing value?)
-
-toml_ast: KEY TABLE_HEADER_END
-# Known ways to trigger it:
-# "foo]"
-
-##
-## Ends in an error in state: 16.
-##
-## key_value_pair -> table_path . EQ value [ RIGHT_BRACE NEWLINE EOF COMMA ]
-##
-## The known suffix of the stack is as follows:
-## table_path
-##
-## WARNING: This example involves spurious reductions.
-## This implies that, although the LR(1) items shown above provide an
-## accurate view of the past (what has been recognized so far), they
-## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 10, spurious reduction of production separated_nonempty_list(DOT,key) -> key
-## In state 9, spurious reduction of production table_path -> separated_nonempty_list(DOT,key)
-##
-
-Unexpected ']' (missing opening square bracket?)
-
-toml_ast: KEY TABLE_HEADER_START
-# Known ways to trigger it:
-# "foo["
-# "foo={1"
-
-##
-## Ends in an error in state: 10.
-##
-## separated_nonempty_list(DOT,key) -> key . [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END EQ ]
-## separated_nonempty_list(DOT,key) -> key . DOT separated_nonempty_list(DOT,key) [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END EQ ]
-##
-## The known suffix of the stack is as follows:
-## key
-##
-
-Key is followed by end of file or a malformed TOML construct.
-
-toml_ast: NEWLINE TABLE_HEADER_END
-# Known ways to trigger it:
-# "\n ]"
-
-##
-## Ends in an error in state: 1.
-##
-## list(NEWLINE) -> NEWLINE . list(NEWLINE) [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START KEY EOF ]
-##
-## The known suffix of the stack is as follows:
-## NEWLINE
-##
-
-Unexpected ']'
-
-toml_ast: TABLE_ARRAY_HEADER_START KEY TABLE_HEADER_END
-# Known ways to trigger it:
-# "[[foo]"
-
-##
-## Ends in an error in state: 14.
-##
-## table_array_header -> TABLE_ARRAY_HEADER_START table_path . TABLE_ARRAY_HEADER_END [ NEWLINE EOF ]
-##
-## The known suffix of the stack is as follows:
-## TABLE_ARRAY_HEADER_START table_path
-##
-## WARNING: This example involves spurious reductions.
-## This implies that, although the LR(1) items shown above provide an
-## accurate view of the past (what has been recognized so far), they
-## may provide an INCOMPLETE view of the future (what was expected next).
-## In state 10, spurious reduction of production separated_nonempty_list(DOT,key) -> key
-## In state 9, spurious reduction of production table_path -> separated_nonempty_list(DOT,key)
-##
-
-Missing closing '] in a table array header, or an extra opening '[' in a table header.
-Example of a valid table header: [table]
-Example of a valid table array header: [[array_of_tables]]
-
-
-toml_ast: TABLE_ARRAY_HEADER_START TABLE_HEADER_START
-##
-## Ends in an error in state: 13.
-##
-## table_array_header -> TABLE_ARRAY_HEADER_START . table_path TABLE_ARRAY_HEADER_END [ NEWLINE EOF ]
-##
-## The known suffix of the stack is as follows:
-## TABLE_ARRAY_HEADER_START
-##
-
-Unexpected '[' (too many opening square brackets in a table array header?)
-
 toml_ast: TABLE_HEADER_END
-# Known ways to trigger it:
-# "\n]"
-
 ##
 ## Ends in an error in state: 0.
 ##
@@ -222,13 +7,58 @@ toml_ast: TABLE_HEADER_END
 ## The known suffix of the stack is as follows:
 ##
 ##
+# Known ways to trigger it:
+# "\n]"
 
-Unexpected ']' 
+Unexpected '.' in a key.
+Examples of valid keys: "value", "table.subtable", "table.subtable.value"
+
+toml_ast: NEWLINE TABLE_HEADER_END
+##
+## Ends in an error in state: 1.
+##
+## list(NEWLINE) -> NEWLINE . list(NEWLINE) [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START STRING RIGHT_BRACE OFFSET_DATETIME NEWLINE MULTILINE_STRING LOCAL_TIME LOCAL_DATETIME LOCAL_DATE LEFT_BRACE KEY INTEGER FLOAT EOF BOOLEAN ARRAY_START ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## NEWLINE
+##
+# Known ways to trigger it:
+# "\n ]"
+
+Unexpected ']'
+
+toml_ast: NEWLINE STRING
+##
+## Ends in an error in state: 4.
+##
+## toml_ast -> list(NEWLINE) . table EOF [ # ]
+##
+## The known suffix of the stack is as follows:
+## list(NEWLINE)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 1, spurious reduction of production list(NEWLINE) ->
+## In state 2, spurious reduction of production list(NEWLINE) -> NEWLINE list(NEWLINE)
+##
+
+Malformed key-value pair (line breaks are not allowed before values)
+
+toml_ast: TABLE_HEADER_START TABLE_HEADER_START
+##
+## Ends in an error in state: 5.
+##
+## table_header -> TABLE_HEADER_START . table_path TABLE_HEADER_END [ NEWLINE EOF ]
+##
+## The known suffix of the stack is as follows:
+## TABLE_HEADER_START
+##
+
+Unexpected table header end.
 
 toml_ast: TABLE_HEADER_START KEY TABLE_ARRAY_HEADER_END
-# Known ways to trigger it:
-# "[foo]]"
-
 ##
 ## Ends in an error in state: 7.
 ##
@@ -249,26 +79,276 @@ Extra closing ']' in a table header, or a missing opening '[' in a table array h
 Example of a valid table header: [table]
 Example of a valid table array header: [[array_of_tables]]
 
-toml_ast: TABLE_HEADER_START KEY TABLE_HEADER_END NEWLINE TABLE_HEADER_END
+toml_ast: KEY TABLE_HEADER_START
 ##
-## Ends in an error in state: 46.
+## Ends in an error in state: 10.
 ##
-## nonempty_list(NEWLINE) -> NEWLINE . [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START KEY EOF ]
-## nonempty_list(NEWLINE) -> NEWLINE . nonempty_list(NEWLINE) [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START KEY EOF ]
+## separated_nonempty_list(DOT,key) -> key . [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END EQ ]
+## separated_nonempty_list(DOT,key) -> key . DOT separated_nonempty_list(DOT,key) [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END EQ ]
 ##
 ## The known suffix of the stack is as follows:
-## NEWLINE
+## key
 ##
-
-Invalid syntax (state 46).
-
-toml_ast: TABLE_HEADER_START KEY TABLE_HEADER_END TABLE_HEADER_START
 # Known ways to trigger it:
-# "[foo] ["
-# "foo=3}"
+# "foo["
+# "foo={1"
 
+Key is followed by end of file or a malformed TOML construct.
+
+toml_ast: KEY DOT TABLE_HEADER_START
 ##
-## Ends in an error in state: 45.
+## Ends in an error in state: 11.
+##
+## separated_nonempty_list(DOT,key) -> key DOT . separated_nonempty_list(DOT,key) [ TABLE_HEADER_END TABLE_ARRAY_HEADER_END EQ ]
+##
+## The known suffix of the stack is as follows:
+## key DOT
+##
+# Known ways to trigger it:
+# "foo. = 1"
+# "[foo.]"
+
+Unexpected '.' in a key.
+Examples of valid keys: "value", "table.subtable", "table.subtable.value"
+
+toml_ast: TABLE_ARRAY_HEADER_START TABLE_HEADER_START
+##
+## Ends in an error in state: 13.
+##
+## table_array_header -> TABLE_ARRAY_HEADER_START . table_path TABLE_ARRAY_HEADER_END [ NEWLINE EOF ]
+##
+## The known suffix of the stack is as follows:
+## TABLE_ARRAY_HEADER_START
+##
+
+Unexpected '[' (too many opening square brackets in a table array header?)
+
+toml_ast: TABLE_ARRAY_HEADER_START KEY TABLE_HEADER_END
+##
+## Ends in an error in state: 14.
+##
+## table_array_header -> TABLE_ARRAY_HEADER_START table_path . TABLE_ARRAY_HEADER_END [ NEWLINE EOF ]
+##
+## The known suffix of the stack is as follows:
+## TABLE_ARRAY_HEADER_START table_path
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 10, spurious reduction of production separated_nonempty_list(DOT,key) -> key
+## In state 9, spurious reduction of production table_path -> separated_nonempty_list(DOT,key)
+##
+# Known ways to trigger it:
+# "[[foo]"
+
+Missing closing '] in a table array header, or an extra opening '[' in a table header.
+Example of a valid table header: [table]
+Example of a valid table array header: [[array_of_tables]]
+
+toml_ast: KEY TABLE_HEADER_END
+##
+## Ends in an error in state: 16.
+##
+## key_value_pair -> table_path . EQ value [ RIGHT_BRACE NEWLINE EOF COMMA ]
+##
+## The known suffix of the stack is as follows:
+## table_path
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 10, spurious reduction of production separated_nonempty_list(DOT,key) -> key
+## In state 9, spurious reduction of production table_path -> separated_nonempty_list(DOT,key)
+##
+# Known ways to trigger it:
+# "foo]"
+
+Unexpected ']' (missing opening square bracket?)
+
+toml_ast: KEY EQ TABLE_HEADER_START
+##
+## Ends in an error in state: 17.
+##
+## key_value_pair -> table_path EQ . value [ RIGHT_BRACE NEWLINE EOF COMMA ]
+##
+## The known suffix of the stack is as follows:
+## table_path EQ
+##
+# Not sure why TABLE_HEADER_START is in the stack.
+# It seems to be the state entered when a key-value pair is missing a value.
+#
+# Known ways to trigger it:
+# "foo="
+# "foo = ]"
+# "foo= \n"
+
+Malformed key-value pair (missing value?)
+
+toml_ast: KEY EQ LEFT_BRACE TABLE_HEADER_START
+##
+## Ends in an error in state: 24.
+##
+## inline_table -> LEFT_BRACE . list(NEWLINE) item_sequence(COMMA,key_value_pair) list(NEWLINE) RIGHT_BRACE [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## LEFT_BRACE
+##
+
+Malformed inline table (missing closing brace?)
+
+toml_ast: KEY EQ LEFT_BRACE NEWLINE TABLE_HEADER_START
+##
+## Ends in an error in state: 25.
+##
+## inline_table -> LEFT_BRACE list(NEWLINE) . item_sequence(COMMA,key_value_pair) list(NEWLINE) RIGHT_BRACE [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## LEFT_BRACE list(NEWLINE)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 1, spurious reduction of production list(NEWLINE) ->
+## In state 2, spurious reduction of production list(NEWLINE) -> NEWLINE list(NEWLINE)
+##
+
+Malformed inline table (state 25)
+
+toml_ast: KEY EQ LEFT_BRACE KEY EQ BOOLEAN TABLE_HEADER_START
+##
+## Ends in an error in state: 26.
+##
+## item_sequence(COMMA,key_value_pair) -> key_value_pair . [ RIGHT_BRACE NEWLINE ]
+## item_sequence(COMMA,key_value_pair) -> key_value_pair . COMMA list(NEWLINE) item_sequence(COMMA,key_value_pair) [ RIGHT_BRACE NEWLINE ]
+##
+## The known suffix of the stack is as follows:
+## key_value_pair
+##
+# Knowns ways to trigger it:
+# foo = { bar = 0 {
+
+Unexpected '{'.
+
+toml_ast: KEY EQ LEFT_BRACE KEY EQ BOOLEAN COMMA TABLE_HEADER_START
+##
+## Ends in an error in state: 27.
+##
+## item_sequence(COMMA,key_value_pair) -> key_value_pair COMMA . list(NEWLINE) item_sequence(COMMA,key_value_pair) [ RIGHT_BRACE NEWLINE ]
+##
+## The known suffix of the stack is as follows:
+## key_value_pair COMMA
+##
+# Known ways to trigger it:
+# foo = { bar = 0, {
+
+Unexpected '{'.
+
+toml_ast: KEY EQ LEFT_BRACE KEY EQ BOOLEAN COMMA NEWLINE TABLE_HEADER_START
+##
+## Ends in an error in state: 28.
+##
+## item_sequence(COMMA,key_value_pair) -> key_value_pair COMMA list(NEWLINE) . item_sequence(COMMA,key_value_pair) [ RIGHT_BRACE NEWLINE ]
+##
+## The known suffix of the stack is as follows:
+## key_value_pair COMMA list(NEWLINE)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 1, spurious reduction of production list(NEWLINE) ->
+## In state 2, spurious reduction of production list(NEWLINE) -> NEWLINE list(NEWLINE)
+##
+
+Inline table missing closing brace.
+
+toml_ast: KEY EQ LEFT_BRACE KEY EQ BOOLEAN NEWLINE TABLE_HEADER_START
+##
+## Ends in an error in state: 31.
+##
+## inline_table -> LEFT_BRACE list(NEWLINE) item_sequence(COMMA,key_value_pair) list(NEWLINE) . RIGHT_BRACE [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## LEFT_BRACE list(NEWLINE) item_sequence(COMMA,key_value_pair) list(NEWLINE)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 1, spurious reduction of production list(NEWLINE) ->
+## In state 2, spurious reduction of production list(NEWLINE) -> NEWLINE list(NEWLINE)
+##
+# Known ways to trigger it:
+# foo = { bar = 0
+# BOOLEAN and stuff seems spurious and unrelated to the problem.
+
+Inline table missing closing brace.
+
+toml_ast: KEY EQ ARRAY_START TABLE_HEADER_START
+##
+## Ends in an error in state: 36.
+##
+## array -> ARRAY_START . ARRAY_END [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
+## array -> ARRAY_START . item_sequence(COMMA,value) ARRAY_END [ RIGHT_BRACE NEWLINE EOF COMMA ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## ARRAY_START
+##
+# Known ways to trigger it:
+# "foo = ["
+
+Malformed array (missing closing square bracket?)
+
+toml_ast: KEY EQ ARRAY_START BOOLEAN TABLE_HEADER_START
+##
+## Ends in an error in state: 38.
+##
+## item_sequence(COMMA,value) -> value . [ ARRAY_END ]
+## item_sequence(COMMA,value) -> value . COMMA list(NEWLINE) item_sequence(COMMA,value) [ ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## value
+##
+
+Syntax error (state 38)
+
+toml_ast: KEY EQ ARRAY_START BOOLEAN COMMA TABLE_HEADER_START
+##
+## Ends in an error in state: 39.
+##
+## item_sequence(COMMA,value) -> value COMMA . list(NEWLINE) item_sequence(COMMA,value) [ ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## value COMMA
+##
+
+Syntax error (state 39)
+
+toml_ast: KEY EQ ARRAY_START BOOLEAN COMMA NEWLINE TABLE_HEADER_START
+##
+## Ends in an error in state: 40.
+##
+## item_sequence(COMMA,value) -> value COMMA list(NEWLINE) . item_sequence(COMMA,value) [ ARRAY_END ]
+##
+## The known suffix of the stack is as follows:
+## value COMMA list(NEWLINE)
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 1, spurious reduction of production list(NEWLINE) ->
+## In state 2, spurious reduction of production list(NEWLINE) -> NEWLINE list(NEWLINE)
+##
+
+Syntax error (state 40)
+
+toml_ast: KEY EQ BOOLEAN TABLE_HEADER_START
+##
+## Ends in an error in state: 48.
 ##
 ## items_on_lines(table_entry) -> table_entry . [ EOF ]
 ## items_on_lines(table_entry) -> table_entry . nonempty_list(NEWLINE) items_on_lines(table_entry) [ EOF ]
@@ -277,20 +357,18 @@ toml_ast: TABLE_HEADER_START KEY TABLE_HEADER_END TABLE_HEADER_START
 ## table_entry
 ##
 
-Invalid syntax.
+Syntax error (state 48)
 
-toml_ast: TABLE_HEADER_START TABLE_HEADER_START
-# Known ways to trigger it:
-# "\n]"
-
+toml_ast: KEY EQ BOOLEAN NEWLINE TABLE_HEADER_END
 ##
-## Ends in an error in state: 5.
+## Ends in an error in state: 49.
 ##
-## table_header -> TABLE_HEADER_START . table_path TABLE_HEADER_END [ NEWLINE EOF ]
+## nonempty_list(NEWLINE) -> NEWLINE . [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START KEY EOF ]
+## nonempty_list(NEWLINE) -> NEWLINE . nonempty_list(NEWLINE) [ TABLE_HEADER_START TABLE_ARRAY_HEADER_START KEY EOF ]
 ##
 ## The known suffix of the stack is as follows:
-## TABLE_HEADER_START
+## NEWLINE
 ##
 
-Unexpected table header end.
+Syntax error (state 49)
 
