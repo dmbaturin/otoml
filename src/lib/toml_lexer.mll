@@ -398,20 +398,25 @@ rule token state = parse
 (* Primitive values *)
 | t_time as t
   {
+    if (in_top_level state) || (in_inline_table state) then (state, KEY(t)) else
     if valid_time hours minutes seconds then (state, LOCAL_TIME(t)) else
     lexing_error lexbuf @@ Printf.sprintf "%s is not a valid time" t
   }
 | t_date as d
-  { if valid_date year month day then (state, LOCAL_DATE(d)) else
+  {
+    if (in_top_level state) || (in_inline_table state) then (state, KEY(d)) else
+    if valid_date year month day then (state, LOCAL_DATE(d)) else
     lexing_error lexbuf @@ Printf.sprintf "%s is not a valid date" d
   }
 | t_local_datetime as dt
   {
+    if (in_top_level state) || (in_inline_table state) then (state, KEY(dt)) else
     if (valid_date year month day) && (valid_time hours minutes seconds) then (state, LOCAL_DATETIME(dt)) else
     lexing_error lexbuf @@ Printf.sprintf "%s is not a valid local datetime" dt
   }
 | t_offset_datetime as dt
   {
+    if (in_top_level state) || (in_inline_table state) then (state, KEY(dt)) else
     if (valid_date year month day) && (valid_time hours minutes seconds) && (valid_timezone tz_hours tz_minutes)
     then (state, OFFSET_DATETIME(dt))
     else lexing_error lexbuf @@ Printf.sprintf "%s is not a valid datetime" dt
