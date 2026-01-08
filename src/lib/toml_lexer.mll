@@ -565,12 +565,12 @@ and read_single_quoted_string state buf =
     }
   | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_single_quoted_string state buf lexbuf }
   | '\n' { lexing_error lexbuf "line breaks are not allowed inside strings" }
-  | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F'] as bad_char
+  | ['\x00'-'\x08' '\x0B'-'\x1F' '\x7F' '\r'] as bad_char
     { lexing_error lexbuf @@
         Printf.sprintf "character '%s' is not allowed inside a string literal without escaping"
         (Char.escaped bad_char)
     }
-  | [^ ''' '\n' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F']+
+  | [^ ''' '\n' '\x00'-'\x08' '\x0B'-'\x1F' '\x7F' '\r']+
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
       read_single_quoted_string state buf lexbuf
     }
@@ -643,14 +643,14 @@ and read_single_quoted_multiline_string state buf =
       (state, MULTILINE_STRING (Buffer.contents buf |> trim_left_newline))
     }
   | "'''"   { validate_unicode lexbuf @@ Buffer.contents buf; (state, MULTILINE_STRING (Buffer.contents buf |> trim_left_newline)) }
-  | '\\' [' ' '\t' '\r' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_single_quoted_multiline_string state buf lexbuf }
+  | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_single_quoted_multiline_string state buf lexbuf }
   | '\n'    { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_single_quoted_multiline_string state buf lexbuf }
-  | ['\x00'-'\x08' '\x0B' '\x0C' '\x0E'-'\x1F' '\x7F'] as bad_char
+  | ['\x00'-'\x08' '\x0B' '\x0C' '\x0E'-'\x1F' '\x7F' '\r'] as bad_char
     { lexing_error lexbuf @@
         Printf.sprintf "character '%s' is not allowed inside a string literal without escaping"
         (Char.escaped bad_char)
     }
-  | (''' [^ '''] | ''' ''' [^ ''']  | [^ ''' '\x00'-'\x08' '\x0B' '\x0C' '\x0E'-'\x1F' '\x7F']+)
+  | (''' [^ '''] | ''' ''' [^ ''']  | [^ ''' '\x00'-'\x08' '\x0B' '\x0C' '\x0E'-'\x1F' '\x7F' '\r']+)
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
       read_single_quoted_multiline_string state buf lexbuf
     }
