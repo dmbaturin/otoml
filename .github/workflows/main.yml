@@ -53,5 +53,5 @@ jobs:
         wget https://github.com/toml-lang/toml-test/releases/download/$TESTSUITE_VERSION/toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
         gunzip toml-test-$TESTSUITE_VERSION-$PLATFORM.gz
         chmod +x toml-test-$TESTSUITE_VERSION-$PLATFORM
-        ./toml-test-$TESTSUITE_VERSION-$PLATFORM test -decoder ./decoder
-        ./toml-test-$TESTSUITE_VERSION-$PLATFORM test -encoder ./encoder
+        ./toml-test-$TESTSUITE_VERSION-$PLATFORM test -toml 1.1.0 -decoder ./decoder
+        ./toml-test-$TESTSUITE_VERSION-$PLATFORM test -toml 1.1.0 -encoder ./encoder
