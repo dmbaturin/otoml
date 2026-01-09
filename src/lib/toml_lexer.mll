@@ -306,7 +306,7 @@ let t_unicode =
   (t_hex_digit t_hex_digit t_hex_digit t_hex_digit
    t_hex_digit t_hex_digit t_hex_digit t_hex_digit)
 
-let t_invalid_escape = '\\' ([^ ' ' '\t' '\r' '\n' 'b' 'n' 'f' 'r' 't' '\\'] as invalid_escape_char)
+let t_invalid_escape = '\\' ([^ ' ' '\t' '\r' '\n' 'b' 'n' 'f' 'r' 't' 'e' '\\'] as invalid_escape_char)
 
 rule token state = parse
 (* Whitespace *)
@@ -556,6 +556,7 @@ and read_double_quoted_string state buf =
   | '\\' 'n'  { Buffer.add_char buf '\n'; read_double_quoted_string state buf lexbuf }
   | '\\' 'r'  { Buffer.add_char buf '\r'; read_double_quoted_string state buf lexbuf }
   | '\\' 't'  { Buffer.add_char buf '\t'; read_double_quoted_string state buf lexbuf }
+  | '\\' 'e'  { Buffer.add_char buf '\x1B'; read_double_quoted_string state buf lexbuf }
   | '\\' '\'' { Buffer.add_char buf '\''; read_double_quoted_string state buf lexbuf }
   | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_string state buf lexbuf }
   | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_string state buf lexbuf }
@@ -621,6 +622,7 @@ and read_double_quoted_multiline_string state buf =
   | '\\' 'n'  { Buffer.add_char buf '\n'; read_double_quoted_multiline_string state buf lexbuf }
   | '\\' 'r'  { Buffer.add_char buf '\r'; read_double_quoted_multiline_string state buf lexbuf }
   | '\\' 't'  { Buffer.add_char buf '\t'; read_double_quoted_multiline_string state buf lexbuf }
+  | '\\' 'e'  { Buffer.add_char buf '\x1B'; read_double_quoted_string state buf lexbuf }
   | '\\' '\'' { Buffer.add_char buf '\''; read_double_quoted_multiline_string state buf lexbuf }
   | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_multiline_string state buf lexbuf }
   | '\\' [' ' '\t' '\r' '\n']* '\n' [' ' '\t' '\r' '\n']*
