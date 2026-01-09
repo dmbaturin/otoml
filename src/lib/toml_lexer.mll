@@ -273,9 +273,10 @@ let t_float = t_sign? ((t_float_number | "nan" | "inf") as float_value)
 
 let t_time =
   (t_digit t_digit as hours)   ':'
-  (t_digit t_digit as minutes) ':'
-  (t_digit t_digit as seconds)
-  ('.' t_digit+)?
+  (t_digit t_digit as minutes)
+  (* Since TOML 1.1.0, seconds are optional *)
+  (':' (t_digit t_digit as seconds)
+  ('.' t_digit+)?)?
 
 (* Timezone part: either Z/z (Zulu time = UTC) or offset: +05:45, -08:00... *)
 
@@ -418,6 +419,7 @@ rule token state = parse
 | t_time as t
   {
     if (in_top_level state) || (in_inline_table state) then (state, KEY(t)) else
+    let seconds = Option.value ~default:"0" seconds in
     if valid_time hours minutes seconds then (state, LOCAL_TIME(t)) else
     lexing_error lexbuf @@ Printf.sprintf "%s is not a valid time" t
   }
@@ -430,12 +432,14 @@ rule token state = parse
 | t_local_datetime as dt
   {
     if (in_top_level state) || (in_inline_table state) then (state, KEY(dt)) else
+    let seconds = Option.value ~default:"0" seconds in
     if (valid_date year month day) && (valid_time hours minutes seconds) then (state, LOCAL_DATETIME(dt)) else
     lexing_error lexbuf @@ Printf.sprintf "%s is not a valid local datetime" dt
   }
 | t_offset_datetime as dt
   {
     if (in_top_level state) || (in_inline_table state) then (state, KEY(dt)) else
+    let seconds = Option.value ~default:"0" seconds in
     if (valid_date year month day) && (valid_time hours minutes seconds) && (valid_timezone tz_hours tz_minutes)
     then (state, OFFSET_DATETIME(dt))
     else lexing_error lexbuf @@ Printf.sprintf "%s is not a valid datetime" dt
