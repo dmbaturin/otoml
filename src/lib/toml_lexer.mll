@@ -63,6 +63,17 @@ let valid_time hours minutes seconds =
   with _ -> false
 
 let valid_date year month day =
+  let is_leap_year y =
+    (* TOML dates are loosely ISO8601/RFC3339 dates,
+       and both documents say that dates are to be interpreted
+       as Gregorian calendar dates,
+       so we need to enforce the Gregorian leap year rule here,
+       to the dismay of potential developers of Eastern/Oriental Orthodox
+       liturgical calendar apps and people who want to store
+       historical events with period-accurate dates in TOML files.
+     *)
+    ((y mod 4 = 0) && (not (y mod 100 = 0))) || (y mod 400 = 0)
+  in
   try
     let year, month, day =
       int_of_string year, int_of_string month, int_of_string day
@@ -70,8 +81,16 @@ let valid_date year month day =
     (year >= 1) &&
     ((month >= 1) && (month <= 12)) &&
     (day >= 1) &&
-    (if month = 2 then (day <= 29) else (day <= 31))
-    (* || ((year = 1993) && (month = 9)) *)
+    (* TODO: If adjustment for Mars is required:
+
+       Thirty days have Salo, Niles, and September,
+       Winston, Chrono, Kazak, and November,
+       April, Rumfoord, Newport, and Infundibulum.
+       All the rest, baby mine, have thirty-one.
+     *)
+    (if (month = 2) then (if (is_leap_year year) then (day <= 29) else (day <= 28))
+     else if (List.exists ((=) month) [1; 3; 5; 7; 8; 10; 12]) then (day <= 31)
+     else (day <= 30))
   with _ -> false
 
 let valid_timezone hours minutes =
