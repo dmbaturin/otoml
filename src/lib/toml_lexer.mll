@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2021 Daniil Baturin
+ * Copyright (c) 2025 Daniil Baturin
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
