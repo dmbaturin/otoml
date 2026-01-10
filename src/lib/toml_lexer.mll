@@ -32,17 +32,19 @@ let lexing_error lexbuf msg =
 exception Bad_unicode of (string * int)
 
 let validate_unicode lexbuf s =
-  let validate _ column character =
-    match character with
-    | `Malformed s -> raise (Bad_unicode (s, column))
-    | _ -> ()
-  in
-  try Uutf.String.fold_utf_8 validate () s
-  with Bad_unicode (c, column) ->
-    let line, _ = Parser_utils.get_lexing_position lexbuf in
-    let msg = Printf.sprintf "malformed UTF-8 character \"%s\" on line %d (column %d within the string or comment)"
-      c line column
-    in raise (Parse_error (None, msg))
+  let len = String.length s in
+  let rec aux s len pos =
+    if pos >= len then () else
+    let c = String.get_utf_8_uchar s pos in
+    if Uchar.utf_decode_is_valid c then
+      let c_len = Uchar.utf_decode_length c in
+      aux s len (pos + c_len)
+    else
+      let line, _ = Parser_utils.get_lexing_position lexbuf in
+      let msg = Printf.sprintf "malformed UTF-8 character on line %d (column %d within the string or comment)"
+        line pos
+      in raise (Parse_error (None, msg))
+  in aux s len 0
 
 (* Date validation.
 

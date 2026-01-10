@@ -17,11 +17,10 @@ build: [
   ]
 ]
 depends: [
-  "ocaml" {>= "4.08.0"}
+  "ocaml" {>= "4.14.0"}
   "menhir"
   "menhirLib" {>= "20200525"}
   "dune" {>= "2.0.0"}
-  "uutf" {>= "1.0.0"}
   "ounit2" {with-test}
   "odoc" {with-doc}
 ]
