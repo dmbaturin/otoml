@@ -563,6 +563,10 @@ and read_double_quoted_string state buf =
   | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_string state buf lexbuf }
   | "\\u" (t_unicode_four as u) { add_utf8_char lexbuf buf u; read_double_quoted_string state buf lexbuf }
   | "\\U" (t_unicode_eight as u) { add_utf8_char lexbuf buf u; read_double_quoted_string state buf lexbuf }
+  | "\\x" ((t_hex_digit t_hex_digit) as h)
+    {
+      Buffer.add_utf_8_uchar buf (Uchar.of_int @@ int_of_string ("0x" ^ h)); read_double_quoted_string state buf lexbuf
+    }
   | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_string state buf lexbuf }
   | t_invalid_escape
     {
@@ -635,6 +639,10 @@ and read_double_quoted_multiline_string state buf =
   | '\n'      { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_double_quoted_multiline_string state buf lexbuf }
   | "\\u" (t_unicode_four as u) { add_utf8_char lexbuf buf u; read_double_quoted_multiline_string state buf lexbuf }
   | "\\U" (t_unicode_eight as u) { add_utf8_char lexbuf buf u; read_double_quoted_multiline_string state buf lexbuf }
+  | "\\x" ((t_hex_digit t_hex_digit) as h)
+    {
+      Buffer.add_utf_8_uchar buf (Uchar.of_int @@ int_of_string ("0x" ^ h)); read_double_quoted_multiline_string state buf lexbuf
+    }
   | t_invalid_escape
     {
       let msg = Printf.sprintf "\\%s is not a valid escape sequence" (Char.escaped invalid_escape_char) in
