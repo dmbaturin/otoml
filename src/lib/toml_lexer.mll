@@ -301,8 +301,10 @@ let t_offset_datetime = t_date ('T' | 't' | ' ') t_time t_timezone
 
 
 (* Unicode escape sequences, for \uXXXX and \uXXXXXXXX. *)
-let t_unicode =
-  (t_hex_digit t_hex_digit t_hex_digit t_hex_digit) |
+let t_unicode_four =
+  (t_hex_digit t_hex_digit t_hex_digit t_hex_digit)
+
+let t_unicode_eight =
   (t_hex_digit t_hex_digit t_hex_digit t_hex_digit
    t_hex_digit t_hex_digit t_hex_digit t_hex_digit)
 
@@ -559,7 +561,8 @@ and read_double_quoted_string state buf =
   | '\\' 'e'  { Buffer.add_char buf '\x1B'; read_double_quoted_string state buf lexbuf }
   | '\\' '\'' { Buffer.add_char buf '\''; read_double_quoted_string state buf lexbuf }
   | '\\' '"'  { Buffer.add_char buf '"'; read_double_quoted_string state buf lexbuf }
-  | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_string state buf lexbuf }
+  | "\\u" (t_unicode_four as u) { add_utf8_char lexbuf buf u; read_double_quoted_string state buf lexbuf }
+  | "\\U" (t_unicode_eight as u) { add_utf8_char lexbuf buf u; read_double_quoted_string state buf lexbuf }
   | '\\' [' ' '\t' '\n']* '\n' { newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_string state buf lexbuf }
   | t_invalid_escape
     {
@@ -630,7 +633,8 @@ and read_double_quoted_multiline_string state buf =
       newlines lexbuf (Lexing.lexeme lexbuf); read_double_quoted_multiline_string state buf lexbuf
     }
   | '\n'      { Lexing.new_line lexbuf; Buffer.add_char buf '\n'; read_double_quoted_multiline_string state buf lexbuf }
-  | ("\\u" | "\\U") (t_unicode as u) { add_utf8_char lexbuf buf u; read_double_quoted_multiline_string state buf lexbuf }
+  | "\\u" (t_unicode_four as u) { add_utf8_char lexbuf buf u; read_double_quoted_multiline_string state buf lexbuf }
+  | "\\U" (t_unicode_eight as u) { add_utf8_char lexbuf buf u; read_double_quoted_multiline_string state buf lexbuf }
   | t_invalid_escape
     {
       let msg = Printf.sprintf "\\%s is not a valid escape sequence" (Char.escaped invalid_escape_char) in
