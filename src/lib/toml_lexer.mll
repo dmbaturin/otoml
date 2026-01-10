@@ -44,11 +44,7 @@ let validate_unicode lexbuf s =
       c line column
     in raise (Parse_error (None, msg))
 
-(* "Date validation".
-
-    The goal is to reject completely implausible dates,
-    since deep validation (if the user wants to work with dates to begin with)
-    can and should be done by a real calendar library.
+(* Date validation.
 
     Exception handling is added just in case.
     In practice invalid integers shouldn't make it that far so int_of_string should work,
