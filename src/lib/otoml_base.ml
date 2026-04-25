@@ -595,11 +595,9 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
     module MI = Toml_parser.MenhirInterpreter
 
     let get_parse_error env =
-      match MI.stack env with
-      | lazy Nil -> "Invalid syntax"
-      | lazy (Cons (MI.Element (state, _, _, _), _)) ->
-	  try (String.trim (Toml_parser_messages.message (MI.number state))) with
-	  | Not_found -> "invalid syntax (no specific message for this error)"
+      try (String.trim (Toml_parser_messages.message (MI.current_state_number env)))
+      with
+      | Not_found -> "Syntax error"
 
     let rec _parse state lexbuf (checkpoint : (node list) MI.checkpoint ) =
       match checkpoint with
