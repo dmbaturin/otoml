@@ -785,6 +785,7 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
 	    let stmts, toml = from_statements toml ks [n] ss in
 	    from_statements toml [] seen_paths stmts
 	  else
+            let toml = insert ~append_table_arrays:true toml ks (TomlTable []) in
 	    from_statements toml ks (n :: seen_paths) ss
 	| _ -> internal_error "bare value in the AST"
 	end
