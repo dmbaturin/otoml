@@ -16,19 +16,17 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
-    - name: Install build dependencies via homebrew
-      run: |
-        echo Installing the OCaml toolchain
-        brew install gpatch git
-        brew install ocaml opam
-        opam init -y
+    - name: Set-up OCaml
+      uses: ocaml/setup-ocaml@v3
+      with:
+        ocaml-compiler: 5.4.0
 
     - name: Build and install the library
       run: |
@@ -38,7 +36,7 @@ jobs:
     - name: Run the TOML test suite
       env:
         TESTSUITE_VERSION: v2.1.0
-        PLATFORM: darwin-amd64
+        PLATFORM: linux-amd64
       run: |
         eval $(opam env)
 
