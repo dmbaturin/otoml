@@ -49,6 +49,12 @@ let test_delete_field _ =
   let new_toml = OT.update toml ["table"; "subtable"; "value"] None in
   assert_bool "field should not exist" (not (OT.path_exists new_toml ["table"; "subtable"; "value"]))
 
+let test_parse_syntax_error _ =
+  let result = OT.Parser.from_string_result "foo =" in
+  assert_equal
+    (Error "Syntax error on line 1, character 6: Malformed key-value pair (missing value?)")
+    result
+
 
 let suite =
   "TOMLTests" >::: [
@@ -58,6 +64,7 @@ let suite =
     "test_add_field" >:: test_add_field;
     "test_update_field" >:: test_update_field;
     "test_delete_field" >:: test_delete_field;
+    "test_parse_syntax_error" >:: test_parse_syntax_error;
   ]
 
 let () =

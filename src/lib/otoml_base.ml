@@ -594,7 +594,16 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
 
     module MI = Toml_parser.MenhirInterpreter
 
-    let get_parse_error env =
+    (* [HandlingError] carries the parser environment at the point where
+       parsing failed. Menhir's old [stack] accessor was removed in 20260112;
+       [current_state_number] is the supported way to select the compiled
+       error message for this environment. *)
+    let get_parse_error checkpoint =
+      let env =
+        match checkpoint with
+        | MI.HandlingError env -> env
+        | _ -> invalid_arg "get_parse_error expects an error checkpoint"
+      in
       try (String.trim (Toml_parser_messages.message (MI.current_state_number env)))
       with
       | Not_found -> "Syntax error"
@@ -613,7 +622,7 @@ module Make (N: TomlNumber) (D: TomlDate) = struct
 	_parse state lexbuf checkpoint
       | MI.HandlingError _env ->
 	let line, pos = Parser_utils.get_lexing_position lexbuf in
-	let err = get_parse_error _env in
+	let err = get_parse_error checkpoint in
 	raise (Parse_error (Some (line, pos), err))
       | MI.Accepted v -> v
       | MI.Rejected ->
