@@ -7,12 +7,12 @@ A TOML parsing and manipulation library for OCaml.
 
 In short:
 
-* TOML 1.0-compliant.
+* Aims to be TOML 1.0-compliant.
 * Transparent (no abstract types).
 * Uses immutable data structures.
 * Easy access to deeply nested values.
 * Preserves the order of fields in tables (even though the spec doesn't require it).
-* Preserves the original syntax variant (e.g. inline vs normal table) when parsing and printing.
+* Preserves the original syntax variant (e.g., inline vs normal table) when parsing and printing.
 * Flexible pretty-printing options.
 * Does not force a calendar or bignum library dependency on you (you can plug your own into the functor).
 
@@ -22,9 +22,9 @@ The main goal for writing another TOML library is to provide a library for _mani
 
 TOML is designed as a configuration file format.
 It's not just a serialization format for machines to talk to one another.
-A lot of time it's written, edited, and read by humans.
+A lot of the time it's written, edited, and read by humans.
 
-That is why TOML supports comments and multiple ways to write the same data. 
+That is why TOML supports comments and multiple ways to represent the same data. 
 
 Ideally, when a program reads a TOML file and writes it back, it should be able to echo it back and respect
 user's choice of using inline records vs sections (i.e. `section = {...}` vs `[section]`) and so on.
@@ -32,6 +32,10 @@ user's choice of using inline records vs sections (i.e. `section = {...}` vs `[s
 OTOML preserves that information and makes it available to the user.
 
 It also offers a convenient interface for accessing and modifying values in deeply nested tables.
+
+## Documentation
+
+You can find an online API reference at https://ocaml.org/p/otoml/latest/doc/otoml/Otoml/index.html
 
 ## Example
 
@@ -88,7 +92,7 @@ or be standard-compliant.
 
 OTOML solves that problem with OCaml functors (parameterized modules).
 
-A default implementation is provided for convenience. It only depends on the OCaml standard library.
+A default implementation is provided for convenience. It only depends on the OCaml standard library:
 
 * Numbers are represented with OCaml's native `int` and `float` types.
 * Date and time values are validated but not parsed, represented as strings.
@@ -96,7 +100,7 @@ A default implementation is provided for convenience. It only depends on the OCa
 If your application doesn't need large numbers and you either don't use datetime values
 or are ready to parse them yourself, it may be all you need.
 
-But if you do, you can bring your own dependencies because the default implementation is not hardcoded,
+But if you want, you can bring your own dependencies because the default implementation is not hardcoded,
 it's just a predefined instance of a functor.
 
 This is how you could assemble the default implementation yourself:
@@ -162,8 +166,10 @@ Thus, actual precision depends on the library you use to parse those date string
 
 ## Users
 
-* [soupault](https://www.soupault.app) (static website framework based on HTML element tree rewriting)
+* [soupault](https://www.soupault.net) (static website framework based on HTML element tree rewriting)
 * [fromager](https://github.com/mimoo/fromager) (ocamlformat frontend)
 * [camyll](https://alan-j-hu.github.io/camyll) (static website generator with literate Agda support)
 * [dirsift](https://github.com/darrenldl/dirsift) (directory search utility)
 * [lab](https://github.com/tmcgilchrist/ocaml-gitlab) (GitLab CLI)
+* [Catala](https://catala-lang.org/) (domain-specific language for legal specifications)
+* [Stone](https://dev.isomorphis.me/stone/) (static website generator)
