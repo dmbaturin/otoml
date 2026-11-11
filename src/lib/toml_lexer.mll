@@ -272,14 +272,15 @@ let t_float = t_sign? ((t_float_number | "nan" | "inf") as float_value)
 let t_time =
   (t_digit t_digit as hours)   ':'
   (t_digit t_digit as minutes)
-  (* Since TOML 1.1.0, seconds are optional *)
-  (':' (t_digit t_digit as seconds)
-  ('.' t_digit+)?)?
+  (* Since TOML 1.1.0, seconds are optional.
+     Time values can have no seconds,
+     or seconds with optional fractional seconds. *)
+   (':' (t_digit t_digit as seconds) ('.' t_digit+)?)?
 
 (* Timezone part: either Z/z (Zulu time = UTC) or offset: +05:45, -08:00... *)
-
 let t_timezone =
-  ('Z' | 'z') | (t_sign (t_digit t_digit as tz_hours) ':' (t_digit t_digit as tz_minutes))
+  (('Z' | 'z') as zulu_marker) |
+  ((t_sign as tz_sign) (t_digit t_digit as tz_hours) ':' (t_digit t_digit as tz_minutes))
 
 (* Date part: 1970-01-01 *)
 let t_date =
@@ -294,8 +295,8 @@ let t_date =
    > NOTE: Per [ABNF] and ISO8601, the "T" and "Z" characters in this
    > syntax may alternatively be lower case "t" or "z" respectively.
  *)
-let t_local_datetime = t_date ('T' | 't' | ' ') t_time
-let t_offset_datetime = t_date ('T' | 't' | ' ') t_time t_timezone
+let t_local_datetime = t_date (('T' | 't' | ' ') as time_separator) t_time
+let t_offset_datetime = t_date (('T' | 't' | ' ') as time_separator) t_time t_timezone
 
 
 (* Unicode escape sequences, for \uXXXX and \uXXXXXXXX. *)
@@ -420,8 +421,19 @@ rule token state = parse
   {
     if (in_top_level state) || (in_inline_table state) then (state, KEY(t)) else
     let seconds = Option.value ~default:"0" seconds in
-    if valid_time hours minutes seconds then (state, LOCAL_TIME(t)) else
-    lexing_error lexbuf @@ Printf.sprintf "%s is not a valid time" t
+    if valid_time hours minutes seconds then
+      begin match seconds with
+      | "0" ->
+        (* Add zero seconds to the time value if seconds were missing in the input.
+           Since TOML 1.1.0, seconds are optional in TOML time values
+           but the test suite expects decoders to always add them in JSON outputs,
+           and it's likely a good idea to include them for compatibility
+           with older code that expects all time values to be HH:MM:SS.
+         *)
+        (state, LOCAL_TIME(t ^ ":00"))
+      | _ -> (state, LOCAL_TIME(t))
+      end
+    else lexing_error lexbuf @@ Printf.sprintf "%s is not a valid time" t
   }
 | t_date as d
   {
@@ -433,15 +445,49 @@ rule token state = parse
   {
     if (in_top_level state) || (in_inline_table state) then (state, KEY(dt)) else
     let seconds = Option.value ~default:"0" seconds in
-    if (valid_date year month day) && (valid_time hours minutes seconds) then (state, LOCAL_DATETIME(dt)) else
-    lexing_error lexbuf @@ Printf.sprintf "%s is not a valid local datetime" dt
+    if (valid_date year month day) && (valid_time hours minutes seconds) then
+      begin match seconds with
+      | "0" ->
+        (* Insert zero seconds into the time part
+           for reasons stated above.
+        *)
+        let dt = Printf.sprintf "%s-%s-%s%c%s:%s:00"
+          year month day time_separator hours minutes
+        in
+        (state, LOCAL_DATETIME(dt))
+      | _ -> (state, LOCAL_DATETIME(dt))
+      end
+    else lexing_error lexbuf @@ Printf.sprintf "%s is not a valid local datetime" dt
   }
 | t_offset_datetime as dt
   {
     if (in_top_level state) || (in_inline_table state) then (state, KEY(dt)) else
     let seconds = Option.value ~default:"0" seconds in
-    if (valid_date year month day) && (valid_time hours minutes seconds) && (valid_timezone tz_hours tz_minutes)
-    then (state, OFFSET_DATETIME(dt))
+    if (valid_date year month day) &&
+       (valid_time hours minutes seconds) &&
+       (valid_timezone tz_hours tz_minutes)
+    then
+      begin match seconds with
+      | "0" ->
+        (* Insert zero seconds into the time part
+           for reasons stated above.
+        *)
+        let dt =
+          begin match zulu_marker with
+          | Some z ->
+            Printf.sprintf "%s-%s-%s%c%s:%s:00%c"
+              year month day time_separator hours minutes z
+          | None ->
+            Printf.sprintf "%s-%s-%s%c%s:%s:00%c%s:%s"
+              year month day time_separator hours minutes
+              (* It's safe to just assume none of these are None
+                 if [valid_timezone] didn't complain. *)
+              (Option.get tz_sign) (Option.get tz_hours) (Option.get tz_minutes)
+          end
+        in
+        (state, OFFSET_DATETIME(dt))
+      | _ -> (state, OFFSET_DATETIME(dt))
+      end
     else lexing_error lexbuf @@ Printf.sprintf "%s is not a valid datetime" dt
   }
 | t_integer as s
