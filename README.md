@@ -7,7 +7,7 @@ A TOML parsing and manipulation library for OCaml.
 
 In short:
 
-* Aims to be TOML 1.0-compliant.
+* Aims to be TOML 1.1-compliant.
 * Transparent (no abstract types).
 * Uses immutable data structures.
 * Easy access to deeply nested values.
@@ -158,9 +158,7 @@ More precise error message for that case may be added in the future.
 >Millisecond precision is required. Further precision of fractional seconds is implementation-specific.
 
 The default implementation does not interpret datetime values at all,
-only checks them for superficial validity and returns as strings.
-
-For example, "1993-09-947" is considered invalid (as expected), but 1993-02-29 is valid despite the fact that 1993 wasn't a leap year.
+only checks if they represent valid Gregorian dates and returns them as strings.
 
 Thus, actual precision depends on the library you use to parse those date strings or plug into the functor.
 
